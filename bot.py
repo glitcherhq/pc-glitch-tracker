@@ -15,7 +15,7 @@ RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "").strip()
 WEB_RADAR_URL = "https://glitcherhq.github.io/pc-glitch-tracker/"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json"
 }
 
@@ -114,7 +114,7 @@ async def keep_alive_ping():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(RENDER_URL) as resp:
-                    print(f"💓 Self-ping keep-alive status: {resp.status}", flush=True)
+                    print(f"💓 Self-ping status: {resp.status}", flush=True)
         except Exception:
             pass
 
@@ -131,7 +131,6 @@ def format_glitch_embed(deal: dict):
     store_id = str(deal.get("storeID", "15"))
     store = STORE_INFO.get(store_id, {"name": "Official Store", "color": 0x10B981})
     deal_url = wrap_affiliate_link(deal["dealID"], store_id)
-
     embed = discord.Embed(
         title=f"⚡ -{savings}% PRICE DROP: {deal['title']}",
         description=(
@@ -173,9 +172,8 @@ async def send_sample_drops(send_func):
                     if freebies:
                         e1, v1 = format_freebie_embed(freebies[0])
                         await send_func(embed=e1, view=v1)
-        except Exception as e:
-            print(f"Freebie fetch error: {e}", flush=True)
-
+        except Exception:
+            pass
         try:
             async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=5&sortBy=Savings") as r2:
                 if r2.status == 200:
@@ -183,8 +181,8 @@ async def send_sample_drops(send_func):
                     if deals:
                         e2, v2 = format_glitch_embed(deals[0])
                         await send_func(embed=e2, view=v2)
-        except Exception as e:
-            print(f"CheapShark fetch error: {e}", flush=True)
+        except Exception:
+            pass
 
 @bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and 75%+ Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
@@ -232,26 +230,4 @@ async def check_price_glitches():
                 return
             deals = await resp.json()
     cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'deal_%'")
-    is_first_boot = cursor.fetchone()[0] == 0
-    for idx, deal in enumerate(deals):
-        if round(float(deal.get("savings", 0))) < 75:
-            continue
-        item_id = f"deal_{deal['dealID']}"
-        cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
-            conn.commit()
-            if not is_first_boot or idx == 0:
-                embed, view = format_glitch_embed(deal)
-                for ch in channels:
-                    try:
-                        await ch.send(embed=embed, view=view)
-                    except Exception:
-                        pass
-
-async def main():
-    await start_web_server()
-    await bot.start(BOT_TOKEN)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    is_first
