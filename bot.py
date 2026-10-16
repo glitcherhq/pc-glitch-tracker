@@ -1,13 +1,41 @@
-import asyncio
+import http.server
 import os
 import sqlite3
+import threading
+import time
 import urllib.parse
 import aiohttp
-from aiohttp import web
 import discord
 from discord import app_commands
 from discord.ext import tasks
 
+# =====================================================================
+# 1. OPEN RENDER PORT INSTANTLY IN A BACKGROUND THREAD (NEVER BLOCKS)
+# =====================================================================
+class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Steam Freebies & Glitch Radar Bot is LIVE 24/7!")
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass
+
+def open_render_port():
+    port = int(os.environ.get("PORT", 10000))
+    server = http.server.HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    print(f"✅ RENDER PORT {port} IS OPEN AND LISTENING!", flush=True)
+    server.serve_forever()
+
+threading.Thread(target=open_render_port, daemon=True).start()
+
+# =====================================================================
+# 2. BOT CONFIGURATION (Reads token from Render's Environment tab)
+# =====================================================================
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
 CJ_WRAPPER = os.getenv("CJ_WRAPPER", "").strip()
 HUMBLE_WRAPPER = os.getenv("HUMBLE_WRAPPER", "").strip()
@@ -72,21 +100,6 @@ class DealButtons(discord.ui.View):
         self.add_item(discord.ui.Button(label=primary_label, url=primary_url, style=discord.ButtonStyle.link, emoji="🔥"))
         self.add_item(discord.ui.Button(label="Live Web Radar", url=WEB_RADAR_URL, style=discord.ButtonStyle.link, emoji="⚡"))
 
-async def handle_health(request):
-    return web.Response(text="Steam Freebies & Glitch Radar Bot is live 24/7!")
-
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", handle_health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.getenv("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    print(f"✅ Web port open and listening on 0.0.0.0:{port}", flush=True)
-    if RENDER_URL:
-        print(f"🔗 YOUR RENDER URL IS: {RENDER_URL}", flush=True)
-
 class GlitchRadarBot(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.default())
@@ -114,7 +127,7 @@ async def keep_alive_ping():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(RENDER_URL) as resp:
-                    print(f"💓 Self-ping status: {resp.status}", flush=True)
+                    print(f"💓 Self-ping keep-alive status: {resp.status}", flush=True)
         except Exception:
             pass
 
@@ -247,9 +260,14 @@ async def check_price_glitches():
                     except Exception:
                         pass
 
-async def main():
-    await start_web_server()
-    await bot.start(BOT_TOKEN)
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    if not BOT_TOKEN:
+        print("❌ ERROR: DISCORD_BOT_TOKEN is empty! Add it in Render -> Environment.", flush=True)
+        while True:
+            time.sleep(60)
+    try:
+        bot.run(BOT_TOKEN)
+    except Exception as e:
+        print(f"❌ DISCORD LOGIN ERROR (Reset your token in Discord Dev Portal!): {e}", flush=True)
+        while True:
+            time.sleep(60)
