@@ -230,4 +230,26 @@ async def check_price_glitches():
                 return
             deals = await resp.json()
     cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'deal_%'")
-    is_first
+    is_first_boot = cursor.fetchone()[0] == 0
+    for idx, deal in enumerate(deals):
+        if round(float(deal.get("savings", 0))) < 75:
+            continue
+        item_id = f"deal_{deal['dealID']}"
+        cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
+            conn.commit()
+            if not is_first_boot or idx == 0:
+                embed, view = format_glitch_embed(deal)
+                for ch in channels:
+                    try:
+                        await ch.send(embed=embed, view=view)
+                    except Exception:
+                        pass
+
+async def main():
+    await start_web_server()
+    await bot.start(BOT_TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
