@@ -6,7 +6,6 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-# Automatically pulls your secret token from GitHub's secure vault
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 CJ_WRAPPER = os.getenv("CJ_WRAPPER", "")
