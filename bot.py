@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sqlite3
 import urllib.parse
@@ -7,9 +8,10 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
-CJ_WRAPPER = os.getenv("CJ_WRAPPER", "")
-HUMBLE_WRAPPER = os.getenv("HUMBLE_WRAPPER", "")
+BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
+CJ_WRAPPER = os.getenv("CJ_WRAPPER", "").strip()
+HUMBLE_WRAPPER = os.getenv("HUMBLE_WRAPPER", "").strip()
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "").strip()
 WEB_RADAR_URL = "https://glitcherhq.github.io/pc-glitch-tracker/"
 
 HEADERS = {
@@ -71,17 +73,19 @@ class DealButtons(discord.ui.View):
         self.add_item(discord.ui.Button(label="Live Web Radar", url=WEB_RADAR_URL, style=discord.ButtonStyle.link, emoji="⚡"))
 
 async def handle_health(request):
-    return web.Response(text="Steam Freebies & Glitch Radar Bot is running 24/7!")
+    return web.Response(text="Steam Freebies & Glitch Radar Bot is live 24/7!")
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_health)
     runner = web.AppRunner(app)
     await runner.setup()
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f"🌐 Keep-alive port listening on {port}")
+    print(f"✅ Web port open and listening on 0.0.0.0:{port}", flush=True)
+    if RENDER_URL:
+        print(f"🔗 YOUR RENDER URL IS: {RENDER_URL}", flush=True)
 
 class GlitchRadarBot(discord.Client):
     def __init__(self):
@@ -89,19 +93,30 @@ class GlitchRadarBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        await start_web_server()
         await self.tree.sync()
 
 bot = GlitchRadarBot()
 
 @bot.event
 async def on_ready():
-    print(f"🚀 24/7 CLOUD BOT ONLINE as {bot.user} across {len(bot.guilds)} server(s)!")
+    print(f"🚀 24/7 CLOUD BOT ONLINE as {bot.user} across {len(bot.guilds)} server(s)!", flush=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for 100% Free Games & Glitches"))
+    if not keep_alive_ping.is_running():
+        keep_alive_ping.start()
     if not check_free_games.is_running():
         check_free_games.start()
     if not check_price_glitches.is_running():
         check_price_glitches.start()
+
+@tasks.loop(minutes=10)
+async def keep_alive_ping():
+    if RENDER_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(RENDER_URL) as resp:
+                    print(f"💓 Self-ping keep-alive status: {resp.status}", flush=True)
+        except Exception:
+            pass
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
@@ -159,7 +174,7 @@ async def send_sample_drops(send_func):
                         e1, v1 = format_freebie_embed(freebies[0])
                         await send_func(embed=e1, view=v1)
         except Exception as e:
-            print(f"Freebie fetch error: {e}")
+            print(f"Freebie fetch error: {e}", flush=True)
 
         try:
             async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=5&sortBy=Savings") as r2:
@@ -169,7 +184,7 @@ async def send_sample_drops(send_func):
                         e2, v2 = format_glitch_embed(deals[0])
                         await send_func(embed=e2, view=v2)
         except Exception as e:
-            print(f"CheapShark fetch error: {e}")
+            print(f"CheapShark fetch error: {e}", flush=True)
 
 @bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and 75%+ Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
@@ -234,5 +249,9 @@ async def check_price_glitches():
                     except Exception:
                         pass
 
+async def main():
+    await start_web_server()
+    await bot.start(BOT_TOKEN)
+
 if __name__ == "__main__":
-    bot.run(BOT_TOKEN)
+    asyncio.run(main())
