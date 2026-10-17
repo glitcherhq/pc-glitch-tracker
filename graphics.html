@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bot Avatar & Banner Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-8 font-sans">
+  <div class="max-w-5xl mx-auto space-y-10">
+    <div>
+      <h1 class="text-2xl font-extrabold text-emerald-400">⚡ Steam Freebies & Glitch Radar — Graphics Pack</h1>
+      <p class="text-sm text-slate-400 mt-1">Click the green buttons below to download your ready-to-upload PNG files.</p>
+    </div>
+
+    <!-- AVATAR SECTION -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-8">
+      <canvas id="avatarCanvas" width="512" height="512" class="w-48 h-48 rounded-2xl border border-slate-700 shadow-lg"></canvas>
+      <div class="space-y-3">
+        <h2 class="text-xl font-bold">1. Official Bot Avatar (512 × 512 PNG)</h2>
+        <p class="text-sm text-slate-400 max-w-md">Upload this in the Discord Developer Portal under <strong>General Information → App Icon</strong> and <strong>Bot → Icon</strong>.</p>
+        <button onclick="downloadCanvas('avatarCanvas', 'avatar.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow">
+          ⬇ Download avatar.png
+        </button>
+      </div>
+    </div>
+
+    <!-- BANNER SECTION -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold">2. Widescreen Promo Banner (1200 × 630 PNG)</h2>
+          <p class="text-sm text-slate-400">Use this as your Discord Bot Banner and at the top of your Top.gg / DiscordBotList description.</p>
+        </div>
+        <button onclick="downloadCanvas('bannerCanvas', 'banner.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow shrink-0">
+          ⬇ Download banner.png
+        </button>
+      </div>
+      <canvas id="bannerCanvas" width="1200" height="630" class="w-full rounded-xl border border-slate-700 shadow-lg"></canvas>
+    </div>
+  </div>
+
+  <script>
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.closePath();
+    }
+
+    // 1. DRAW 512x512 AVATAR
+    function drawAvatar() {
+      const c = document.getElementById("avatarCanvas");
+      const ctx = c.getContext("2d");
+
+      // Background gradient
+      const bg = ctx.createRadialGradient(256, 256, 40, 256, 256, 360);
+      bg.addColorStop(0, "#0f2922");
+      bg.addColorStop(0.6, "#0b0f19");
+      bg.addColorStop(1, "#060911");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Glowing Radar Rings
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.18)";
+      ctx.lineWidth = 3;
+      [110, 175, 230].forEach(radius => {
+        ctx.beginPath();
+        ctx.arc(256, 235, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      // Radar Crosshairs
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.1)";
+      ctx.beginPath();
+      ctx.moveTo(256, 20); ctx.lineTo(256, 450);
+      ctx.moveTo(40, 235); ctx.lineTo(472, 235);
+      ctx.stroke();
+
+      // Outer Neon Border
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 10;
+      roundRect(ctx, 16, 16, 480, 480, 80);
+      ctx.stroke();
+
+      // Lightning Bolt Icon
+      ctx.save();
+      ctx.shadowColor = "#10b981";
+      ctx.shadowBlur = 35;
+      const boltGrad = ctx.createLinearGradient(180, 70, 330, 350);
+      boltGrad.addColorStop(0, "#6ee7b7");
+      boltGrad.addColorStop(0.5, "#10b981");
+      boltGrad.addColorStop(1, "#059669");
+      ctx.fillStyle = boltGrad;
+      ctx.beginPath();
+      ctx.moveTo(285, 65);
+      ctx.lineTo(155, 245);
+      ctx.lineTo(250, 245);
+      ctx.lineTo(215, 385);
+      ctx.lineTo(360, 195);
+      ctx.lineTo(265, 195);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Bottom Pill Badge ("FREE & -95%")
+      ctx.fillStyle = "#10b981";
+      roundRect(ctx, 76, 405, 360, 64, 32);
+      ctx.fill();
+
+      ctx.fillStyle = "#060911";
+      ctx.font = "900 33px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("FREE & -95% OFF", 256, 449);
+    }
+
+    // 2. DRAW 1200x630 BANNER
+    function drawBanner() {
+      const c = document.getElementById("bannerCanvas");
+      const ctx = c.getContext("2d");
+
+      // Deep Cyber Background
+      const bg = ctx.createLinearGradient(0, 0, 1200, 630);
+      bg.addColorStop(0, "#070b14");
+      bg.addColorStop(0.55, "#0f172a");
+      bg.addColorStop(1, "#06241c");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 1200, 630);
+
+      // Subtle Grid Lines
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.06)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < 1200; x += 60) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 630); ctx.stroke();
+      }
+      for (let y = 0; y < 630; y += 60) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1200, y); ctx.stroke();
+      }
+
+      // Glowing Orb Behind Cards
+      const glow = ctx.createRadialGradient(900, 315, 20, 900, 315, 320);
+      glow.addColorStop(0, "rgba(16, 185, 129, 0.30)");
+      glow.addColorStop(1, "rgba(16, 185, 129, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(500, 0, 700, 630);
+
+      // Top Status Pill
+      ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, 70, 75, 365, 44, 22);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = "#34d399";
+      ctx.font = "800 18px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("⚡ 24/7 AUTOMATED DISCORD BOT", 94, 103);
+
+      // Main Headline
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 62px system-ui, -apple-system, sans-serif";
+      ctx.fillText("STEAM FREEBIES", 70, 195);
+
+      ctx.fillStyle = "#10b981";
+      ctx.fillText("& GLITCH RADAR", 70, 268);
+
+      // Subheadline
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "500 24px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Instant alerts for 100% Free PC Games (Steam & Epic)", 70, 330);
+      ctx.fillText("and 75%–95% Off Official Steam Key Price Glitches.", 70, 366);
+
+      // Feature Badges Bottom Left
+      const badges = [
+        { text: "🎁 100% Free Games", x: 70, w: 235, bg: "#10b981", fg: "#052e16" },
+        { text: "🔥 75%–95% Glitches", x: 325, w: 245, bg: "#f59e0b", fg: "#451a03" }
+      ];
+      badges.forEach(b => {
+        ctx.fillStyle = b.bg;
+        roundRect(ctx, b.x, 420, b.w, 58, 16);
+        ctx.fill();
+        ctx.fillStyle = b.fg;
+        ctx.font = "900 21px system-ui, -apple-system, sans-serif";
+        ctx.fillText(b.text, b.x + 22, 456);
+      });
+
+      // Zero-Setup Footer Note
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "700 20px system-ui, -apple-system, sans-serif";
+      ctx.fillText("✅ Zero Setup Required — Auto-Detects Channel or type /setchannel", 70, 545);
+
+      // RIGHT SIDE: Mock Discord Alert Cards
+      // Card 1: 100% Free Game
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = "#1e293b";
+      roundRect(ctx, 680, 85, 455, 205, 18);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = "#10b981";
+      roundRect(ctx, 680, 85, 10, 205, [18, 0, 0, 18]);
+      ctx.fill();
+
+      ctx.fillStyle = "#34d399";
+      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("🎁 100% FREE GAME ALERT", 712, 122);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 24px system-ui, -apple-system, sans-serif";
+      ctx.fillText("AAA PC Game Giveaway", 712, 158);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 18px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Normal Price: $29.99  →", 712, 195);
+
+      ctx.fillStyle = "#10b981";
+      ctx.font = "900 22px system-ui, -apple-system, sans-serif";
+      ctx.fillText("FREE ($0.00)", 925, 195);
+
+      ctx.fillStyle = "#3b82f6";
+      roundRect(ctx, 712, 220, 230, 44, 10);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("🔥 Claim Free Game →", 732, 248);
+
+      // Card 2: -94% Flash Price Glitch
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = "#1e293b";
+      roundRect(ctx, 680, 325, 455, 205, 18);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = "#f97316";
+      roundRect(ctx, 680, 325, 10, 205, [18, 0, 0, 18]);
+      ctx.fill();
+
+      ctx.fillStyle = "#fb923c";
+      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("⚡ -94% FLASH PRICE GLITCH", 712, 362);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 24px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Verified Official Steam Key", 712, 398);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 18px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Retail: $49.99  →", 712, 435);
+
+      ctx.fillStyle = "#fb923c";
+      ctx.font = "900 24px system-ui, -apple-system, sans-serif";
+      ctx.fillText("$2.99 (-94%)", 865, 435);
+
+      ctx.fillStyle = "#10b981";
+      roundRect(ctx, 712, 460, 230, 44, 10);
+      ctx.fill();
+      ctx.fillStyle = "#052e16";
+      ctx.font = "900 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("⚡ Grab Deal ($2.99) →", 732, 488);
+    }
+
+    function downloadCanvas(id, filename) {
+      const canvas = document.getElementById(id);
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    drawAvatar();
+    drawBanner();
+  </script>
+</body>
+</html>
