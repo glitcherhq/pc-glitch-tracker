@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Bot Avatar & Banner Generator</title>
+  <title>Bot Avatar & Banner Generator (Fixed Discord Aspect Ratio)</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-8 font-sans">
   <div class="max-w-5xl mx-auto space-y-10">
     <div>
-      <h1 class="text-2xl font-extrabold text-emerald-400">⚡ Steam Freebies & Glitch Radar — Graphics Pack</h1>
-      <p class="text-sm text-slate-400 mt-1">Click the green buttons below to download your ready-to-upload PNG files.</p>
+      <h1 class="text-2xl font-extrabold text-emerald-400">⚡ Steam Freebies & Glitch Radar — Graphics Pack (v2)</h1>
+      <p class="text-sm text-slate-400 mt-1">Resized to exact Discord Bot Banner dimensions (1360 × 480) with centered badge padding.</p>
     </div>
 
     <!-- AVATAR SECTION -->
@@ -17,7 +17,7 @@
       <canvas id="avatarCanvas" width="512" height="512" class="w-48 h-48 rounded-2xl border border-slate-700 shadow-lg"></canvas>
       <div class="space-y-3">
         <h2 class="text-xl font-bold">1. Official Bot Avatar (512 × 512 PNG)</h2>
-        <p class="text-sm text-slate-400 max-w-md">Upload this in the Discord Developer Portal under <strong>General Information → App Icon</strong> and <strong>Bot → Icon</strong>.</p>
+        <p class="text-sm text-slate-400 max-w-md">Upload this in the Discord Developer Portal under <strong>General Information → App Icon</strong> and <strong>Bot → Avatar</strong>.</p>
         <button onclick="downloadCanvas('avatarCanvas', 'avatar.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow">
           ⬇ Download avatar.png
         </button>
@@ -28,14 +28,14 @@
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold">2. Widescreen Promo Banner (1200 × 630 PNG)</h2>
-          <p class="text-sm text-slate-400">Use this as your Discord Bot Banner and at the top of your Top.gg / DiscordBotList description.</p>
+          <h2 class="text-xl font-bold">2. Discord Bot Profile Banner (1360 × 480 PNG — Exact 17:6 Ratio)</h2>
+          <p class="text-sm text-slate-400">Fits Discord's white banner crop box edge-to-edge with wide padding inside every badge.</p>
         </div>
         <button onclick="downloadCanvas('bannerCanvas', 'banner.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow shrink-0">
           ⬇ Download banner.png
         </button>
       </div>
-      <canvas id="bannerCanvas" width="1200" height="630" class="w-full rounded-xl border border-slate-700 shadow-lg"></canvas>
+      <canvas id="bannerCanvas" width="1360" height="480" class="w-full rounded-xl border border-slate-700 shadow-lg"></canvas>
     </div>
   </div>
 
@@ -51,7 +51,6 @@
       const c = document.getElementById("avatarCanvas");
       const ctx = c.getContext("2d");
 
-      // Background gradient
       const bg = ctx.createRadialGradient(256, 256, 40, 256, 256, 360);
       bg.addColorStop(0, "#0f2922");
       bg.addColorStop(0.6, "#0b0f19");
@@ -59,222 +58,228 @@
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 512, 512);
 
-      // Glowing Radar Rings
       ctx.strokeStyle = "rgba(16, 185, 129, 0.18)";
       ctx.lineWidth = 3;
       [110, 175, 230].forEach(radius => {
         ctx.beginPath();
-        ctx.arc(256, 235, radius, 0, Math.PI * 2);
+        ctx.arc(256, 230, radius, 0, Math.PI * 2);
         ctx.stroke();
       });
 
-      // Radar Crosshairs
       ctx.strokeStyle = "rgba(16, 185, 129, 0.1)";
       ctx.beginPath();
-      ctx.moveTo(256, 20); ctx.lineTo(256, 450);
-      ctx.moveTo(40, 235); ctx.lineTo(472, 235);
+      ctx.moveTo(256, 20); ctx.lineTo(256, 440);
+      ctx.moveTo(40, 230); ctx.lineTo(472, 230);
       ctx.stroke();
 
-      // Outer Neon Border
       ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 10;
       roundRect(ctx, 16, 16, 480, 480, 80);
       ctx.stroke();
 
-      // Lightning Bolt Icon
       ctx.save();
       ctx.shadowColor = "#10b981";
       ctx.shadowBlur = 35;
-      const boltGrad = ctx.createLinearGradient(180, 70, 330, 350);
+      const boltGrad = ctx.createLinearGradient(180, 65, 330, 345);
       boltGrad.addColorStop(0, "#6ee7b7");
       boltGrad.addColorStop(0.5, "#10b981");
       boltGrad.addColorStop(1, "#059669");
       ctx.fillStyle = boltGrad;
       ctx.beginPath();
-      ctx.moveTo(285, 65);
-      ctx.lineTo(155, 245);
-      ctx.lineTo(250, 245);
-      ctx.lineTo(215, 385);
-      ctx.lineTo(360, 195);
-      ctx.lineTo(265, 195);
+      ctx.moveTo(285, 60);
+      ctx.lineTo(155, 240);
+      ctx.lineTo(250, 240);
+      ctx.lineTo(215, 375);
+      ctx.lineTo(360, 190);
+      ctx.lineTo(265, 190);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
 
-      // Bottom Pill Badge ("FREE & -95%")
+      // Centered Bottom Pill Badge
       ctx.fillStyle = "#10b981";
-      roundRect(ctx, 76, 405, 360, 64, 32);
+      roundRect(ctx, 66, 402, 380, 64, 32);
       ctx.fill();
 
       ctx.fillStyle = "#060911";
-      ctx.font = "900 32px system-ui, -apple-system, sans-serif";
+      ctx.font = "900 30px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("FREE & -95% OFF", 256, 448);
+      ctx.textBaseline = "middle";
+      ctx.fillText("FREE & -95% OFF", 256, 435);
     }
 
-    // 2. DRAW 1200x630 BANNER
+    // 2. DRAW 1360x480 BANNER (EXACT DISCORD 17:6 BANNER RATIO)
     function drawBanner() {
       const c = document.getElementById("bannerCanvas");
       const ctx = c.getContext("2d");
 
-      // Deep Cyber Background
-      const bg = ctx.createLinearGradient(0, 0, 1200, 630);
+      // Background
+      const bg = ctx.createLinearGradient(0, 0, 1360, 480);
       bg.addColorStop(0, "#070b14");
       bg.addColorStop(0.55, "#0f172a");
       bg.addColorStop(1, "#06241c");
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 1200, 630);
+      ctx.fillRect(0, 0, 1360, 480);
 
-      // Subtle Grid Lines
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.05)";
+      // Subtle Grid
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.06)";
       ctx.lineWidth = 1;
-      for (let x = 0; x < 1200; x += 60) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 630); ctx.stroke();
+      for (let x = 0; x < 1360; x += 55) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 480); ctx.stroke();
       }
-      for (let y = 0; y < 630; y += 60) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1200, y); ctx.stroke();
+      for (let y = 0; y < 480; y += 55) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1360, y); ctx.stroke();
       }
 
-      // Glowing Orb Behind Cards (Visual Highlight Area)
-      const glow = ctx.createRadialGradient(900, 315, 20, 900, 315, 320);
-      glow.addColorStop(0, "rgba(16, 185, 129, 0.22)");
+      // Glow Behind Right Cards
+      const glow = ctx.createRadialGradient(1030, 240, 20, 1030, 240, 280);
+      glow.addColorStop(0, "rgba(16, 185, 129, 0.28)");
       glow.addColorStop(1, "rgba(16, 185, 129, 0)");
       ctx.fillStyle = glow;
-      ctx.fillRect(500, 0, 700, 630);
+      ctx.fillRect(680, 0, 680, 480);
 
-      // 1. Top Status Pill (Safe X: 80px)
-      ctx.fillStyle = "rgba(16, 185, 129, 0.12)";
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.40)";
+      // Top Status Pill (Centered Text with Wide Padding)
+      const pillX = 70, pillY = 38, pillW = 360, pillH = 40;
+      ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
       ctx.lineWidth = 2;
-      roundRect(ctx, 80, 75, 335, 42, 21);
-      ctx.fill(); ctx.stroke();
+      roundRect(ctx, pillX, pillY, pillW, pillH, 20);
+      ctx.fill();
+      ctx.stroke();
 
       ctx.fillStyle = "#34d399";
       ctx.font = "800 16px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("⚡ 24/7 AUTOMATED DISCORD BOT", pillX + pillW / 2, pillY + pillH / 2 + 1);
+
+      // Main Headlines (Left Aligned)
       ctx.textAlign = "left";
-      ctx.fillText("⚡ 24/7 AUTOMATED DISCORD BOT", 102, 101);
-
-      // 2. Main Title Line
+      ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "900 62px system-ui, -apple-system, sans-serif";
-      ctx.fillText("STEAM FREEBIES", 80, 192);
+      ctx.font = "900 56px system-ui, -apple-system, sans-serif";
+      ctx.fillText("STEAM FREEBIES", 70, 140);
 
       ctx.fillStyle = "#10b981";
-      ctx.fillText("& GLITCH RADAR", 80, 264);
+      ctx.fillText("& GLITCH RADAR", 70, 202);
 
-      // 3. Description text block
+      // Subheadline
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "500 23px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Instant alerts for 100% Free PC Games (Steam & Epic)", 80, 325);
-      ctx.fillText("and 75%–95% Off Official Steam Key Price Glitches.", 80, 360);
+      ctx.font = "500 22px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Instant alerts for 100% Free PC Games (Steam & Epic)", 70, 250);
+      ctx.fillText("and 75%–95% Off Official Steam Key Price Glitches.", 70, 282);
 
-      // 4. Compact, edge-safe ghost-style Outline Badges
-      // Badge 1: 100% Free Games (outline)
-      ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, 80, 412, 215, 48, 12);
-      ctx.fill(); ctx.stroke();
+      // Feature Badges (Wider Boxes + Dead-Center Text Alignment)
+      const badges = [
+        { text: "🎁 100% Free Games", x: 70, w: 280, bg: "#10b981", fg: "#052e16" },
+        { text: "🔥 75%–95% Glitches", x: 370, w: 280, bg: "#f59e0b", fg: "#451a03" }
+      ];
+      const badgeY = 315, badgeH = 54;
+      badges.forEach(b => {
+        ctx.fillStyle = b.bg;
+        roundRect(ctx, b.x, badgeY, b.w, badgeH, 14);
+        ctx.fill();
 
-      // Mini Glowing dot instead of emojis (100% render safety)
-      ctx.fillStyle = "#10b981";
-      ctx.beginPath(); ctx.arc(106, 436, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = b.fg;
+        ctx.font = "900 20px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(b.text, b.x + b.w / 2, badgeY + badgeH / 2 + 1);
+      });
 
-      ctx.fillStyle = "#34d399";
-      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("100% Free Games", 124, 442);
-
-      // Badge 2: 75%–95% Glitches (outline)
-      ctx.fillStyle = "rgba(245, 158, 11, 0.08)";
-      ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, 315, 412, 215, 48, 12);
-      ctx.fill(); ctx.stroke();
-
-      ctx.fillStyle = "#f59e0b";
-      ctx.beginPath(); ctx.arc(341, 436, 5, 0, Math.PI * 2); ctx.fill();
-
-      ctx.fillStyle = "#fb923c";
-      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("75%–95% Glitches", 359, 442);
-
-      // 5. Zero-Setup Footer
+      // Bottom Line (Safely Inside Crop Area)
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#cbd5e1";
-      ctx.font = "700 19px system-ui, -apple-system, sans-serif";
-      ctx.fillText("✅ Zero Setup Required — Auto-Detects Channel or type /setchannel", 80, 545);
+      ctx.font = "700 18px system-ui, -apple-system, sans-serif";
+      ctx.fillText("✅ Zero Setup Required — Auto-Detects Channel or type /setchannel", 70, 422);
 
-      // RIGHT SIDE: Properly Scaled Mock Discord Alert Cards (Width: 420px, right edge margin: 80px)
+      // RIGHT SIDE: Mock Discord Alert Cards (Fit cleanly inside 480px height)
       // Card 1: 100% Free Game
+      const cardX = 760, cardW = 530, cardH = 185;
+      const c1Y = 38;
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
       ctx.shadowBlur = 24;
       ctx.fillStyle = "#1e293b";
-      roundRect(ctx, 700, 85, 420, 202, 16);
+      roundRect(ctx, cardX, c1Y, cardW, cardH, 16);
       ctx.fill();
       ctx.restore();
 
       ctx.fillStyle = "#10b981";
-      roundRect(ctx, 700, 85, 8, 202, [16, 0, 0, 16]);
+      roundRect(ctx, cardX, c1Y, 10, cardH, [16, 0, 0, 16]);
       ctx.fill();
 
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#34d399";
       ctx.font = "800 15px system-ui, -apple-system, sans-serif";
-      ctx.fillText("🎁 100% FREE GAME ALERT", 730, 120);
+      ctx.fillText("🎁 100% FREE GAME ALERT", cardX + 32, c1Y + 34);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 22px system-ui, -apple-system, sans-serif";
-      ctx.fillText("AAA PC Game Giveaway", 730, 154);
+      ctx.font = "800 23px system-ui, -apple-system, sans-serif";
+      ctx.fillText("AAA PC Game Giveaway", cardX + 32, c1Y + 68);
 
       ctx.fillStyle = "#94a3b8";
       ctx.font = "600 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Normal Price: $29.99  →", 730, 191);
+      ctx.fillText("Normal Price: $29.99  →", cardX + 32, c1Y + 102);
 
       ctx.fillStyle = "#10b981";
-      ctx.font = "900 21px system-ui, -apple-system, sans-serif";
-      ctx.fillText("FREE ($0.00)", 932, 191);
+      ctx.font = "900 20px system-ui, -apple-system, sans-serif";
+      ctx.fillText("FREE ($0.00)", cardX + 235, c1Y + 102);
 
+      // Card 1 Button (Centered Text)
+      const btnW = 245, btnH = 42;
       ctx.fillStyle = "#3b82f6";
-      roundRect(ctx, 730, 215, 215, 42, 8);
+      roundRect(ctx, cardX + 32, c1Y + 122, btnW, btnH, 10);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
       ctx.font = "800 16px system-ui, -apple-system, sans-serif";
-      ctx.fillText("🔥 Claim Free Game →", 750, 241);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🔥 Claim Free Game →", cardX + 32 + btnW / 2, c1Y + 122 + btnH / 2 + 1);
 
       // Card 2: -94% Flash Price Glitch
+      const c2Y = 255;
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
       ctx.shadowBlur = 24;
       ctx.fillStyle = "#1e293b";
-      roundRect(ctx, 700, 320, 420, 202, 16);
+      roundRect(ctx, cardX, c2Y, cardW, cardH, 16);
       ctx.fill();
       ctx.restore();
 
       ctx.fillStyle = "#f97316";
-      roundRect(ctx, 700, 320, 8, 202, [16, 0, 0, 16]);
+      roundRect(ctx, cardX, c2Y, 10, cardH, [16, 0, 0, 16]);
       ctx.fill();
 
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#fb923c";
       ctx.font = "800 15px system-ui, -apple-system, sans-serif";
-      ctx.fillText("⚡ -94% FLASH PRICE GLITCH", 730, 355);
+      ctx.fillText("⚡ -94% FLASH PRICE GLITCH", cardX + 32, c2Y + 34);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 22px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Verified Official Steam Key", 730, 389);
+      ctx.font = "800 23px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Verified Official Steam Key", cardX + 32, c2Y + 68);
 
       ctx.fillStyle = "#94a3b8";
       ctx.font = "600 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Retail: $49.99  →", 730, 426);
+      ctx.fillText("Retail: $49.99  →", cardX + 32, c2Y + 102);
 
       ctx.fillStyle = "#fb923c";
-      ctx.font = "900 22px system-ui, -apple-system, sans-serif";
-      ctx.fillText("$2.99 (-94%)", 874, 426);
+      ctx.font = "900 20px system-ui, -apple-system, sans-serif";
+      ctx.fillText("$2.99 (-94%)", cardX + 180, c2Y + 102);
 
+      // Card 2 Button (Centered Text)
       ctx.fillStyle = "#10b981";
-      roundRect(ctx, 730, 450, 215, 42, 8);
+      roundRect(ctx, cardX + 32, c2Y + 122, btnW, btnH, 10);
       ctx.fill();
       ctx.fillStyle = "#052e16";
       ctx.font = "900 16px system-ui, -apple-system, sans-serif";
-      ctx.fillText("⚡ Grab Deal ($2.99) →", 750, 476);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("⚡ Grab Deal ($2.99) →", cardX + 32 + btnW / 2, c2Y + 122 + btnH / 2 + 1);
     }
 
     function downloadCanvas(id, filename) {
