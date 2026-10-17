@@ -107,9 +107,9 @@
       ctx.fill();
 
       ctx.fillStyle = "#060911";
-      ctx.font = "900 33px system-ui, -apple-system, sans-serif";
+      ctx.font = "900 32px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("FREE & -95% OFF", 256, 449);
+      ctx.fillText("FREE & -95% OFF", 256, 448);
     }
 
     // 2. DRAW 1200x630 BANNER
@@ -126,7 +126,7 @@
       ctx.fillRect(0, 0, 1200, 630);
 
       // Subtle Grid Lines
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.06)";
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.05)";
       ctx.lineWidth = 1;
       for (let x = 0; x < 1200; x += 60) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 630); ctx.stroke();
@@ -135,130 +135,146 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1200, y); ctx.stroke();
       }
 
-      // Glowing Orb Behind Cards
+      // Glowing Orb Behind Cards (Visual Highlight Area)
       const glow = ctx.createRadialGradient(900, 315, 20, 900, 315, 320);
-      glow.addColorStop(0, "rgba(16, 185, 129, 0.30)");
+      glow.addColorStop(0, "rgba(16, 185, 129, 0.22)");
       glow.addColorStop(1, "rgba(16, 185, 129, 0)");
       ctx.fillStyle = glow;
       ctx.fillRect(500, 0, 700, 630);
 
-      // Top Status Pill
-      ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
+      // 1. Top Status Pill (Safe X: 80px)
+      ctx.fillStyle = "rgba(16, 185, 129, 0.12)";
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.40)";
       ctx.lineWidth = 2;
-      roundRect(ctx, 70, 75, 365, 44, 22);
+      roundRect(ctx, 80, 75, 335, 42, 21);
       ctx.fill(); ctx.stroke();
 
       ctx.fillStyle = "#34d399";
-      ctx.font = "800 18px system-ui, -apple-system, sans-serif";
+      ctx.font = "800 16px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText("⚡ 24/7 AUTOMATED DISCORD BOT", 94, 103);
+      ctx.fillText("⚡ 24/7 AUTOMATED DISCORD BOT", 102, 101);
 
-      // Main Headline
+      // 2. Main Title Line
       ctx.fillStyle = "#ffffff";
       ctx.font = "900 62px system-ui, -apple-system, sans-serif";
-      ctx.fillText("STEAM FREEBIES", 70, 195);
+      ctx.fillText("STEAM FREEBIES", 80, 192);
 
       ctx.fillStyle = "#10b981";
-      ctx.fillText("& GLITCH RADAR", 70, 268);
+      ctx.fillText("& GLITCH RADAR", 80, 264);
 
-      // Subheadline
+      // 3. Description text block
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "500 24px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Instant alerts for 100% Free PC Games (Steam & Epic)", 70, 330);
-      ctx.fillText("and 75%–95% Off Official Steam Key Price Glitches.", 70, 366);
+      ctx.font = "500 23px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Instant alerts for 100% Free PC Games (Steam & Epic)", 80, 325);
+      ctx.fillText("and 75%–95% Off Official Steam Key Price Glitches.", 80, 360);
 
-      // Feature Badges Bottom Left
-      const badges = [
-        { text: "🎁 100% Free Games", x: 70, w: 235, bg: "#10b981", fg: "#052e16" },
-        { text: "🔥 75%–95% Glitches", x: 325, w: 245, bg: "#f59e0b", fg: "#451a03" }
-      ];
-      badges.forEach(b => {
-        ctx.fillStyle = b.bg;
-        roundRect(ctx, b.x, 420, b.w, 58, 16);
-        ctx.fill();
-        ctx.fillStyle = b.fg;
-        ctx.font = "900 21px system-ui, -apple-system, sans-serif";
-        ctx.fillText(b.text, b.x + 22, 456);
-      });
+      // 4. Compact, edge-safe ghost-style Outline Badges
+      // Badge 1: 100% Free Games (outline)
+      ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 80, 412, 215, 48, 12);
+      ctx.fill(); ctx.stroke();
 
-      // Zero-Setup Footer Note
+      // Mini Glowing dot instead of emojis (100% render safety)
+      ctx.fillStyle = "#10b981";
+      ctx.beginPath(); ctx.arc(106, 436, 5, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = "#34d399";
+      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("100% Free Games", 124, 442);
+
+      // Badge 2: 75%–95% Glitches (outline)
+      ctx.fillStyle = "rgba(245, 158, 11, 0.08)";
+      ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 315, 412, 215, 48, 12);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = "#f59e0b";
+      ctx.beginPath(); ctx.arc(341, 436, 5, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = "#fb923c";
+      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("75%–95% Glitches", 359, 442);
+
+      // 5. Zero-Setup Footer
       ctx.fillStyle = "#cbd5e1";
-      ctx.font = "700 20px system-ui, -apple-system, sans-serif";
-      ctx.fillText("✅ Zero Setup Required — Auto-Detects Channel or type /setchannel", 70, 545);
+      ctx.font = "700 19px system-ui, -apple-system, sans-serif";
+      ctx.fillText("✅ Zero Setup Required — Auto-Detects Channel or type /setchannel", 80, 545);
 
-      // RIGHT SIDE: Mock Discord Alert Cards
+      // RIGHT SIDE: Properly Scaled Mock Discord Alert Cards (Width: 420px, right edge margin: 80px)
       // Card 1: 100% Free Game
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur = 30;
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 24;
       ctx.fillStyle = "#1e293b";
-      roundRect(ctx, 680, 85, 455, 205, 18);
+      roundRect(ctx, 700, 85, 420, 202, 16);
       ctx.fill();
       ctx.restore();
 
       ctx.fillStyle = "#10b981";
-      roundRect(ctx, 680, 85, 10, 205, [18, 0, 0, 18]);
+      roundRect(ctx, 700, 85, 8, 202, [16, 0, 0, 16]);
       ctx.fill();
 
       ctx.fillStyle = "#34d399";
-      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("🎁 100% FREE GAME ALERT", 712, 122);
+      ctx.font = "800 15px system-ui, -apple-system, sans-serif";
+      ctx.fillText("🎁 100% FREE GAME ALERT", 730, 120);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 24px system-ui, -apple-system, sans-serif";
-      ctx.fillText("AAA PC Game Giveaway", 712, 158);
+      ctx.font = "800 22px system-ui, -apple-system, sans-serif";
+      ctx.fillText("AAA PC Game Giveaway", 730, 154);
 
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "600 18px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Normal Price: $29.99  →", 712, 195);
+      ctx.font = "600 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Normal Price: $29.99  →", 730, 191);
 
       ctx.fillStyle = "#10b981";
-      ctx.font = "900 22px system-ui, -apple-system, sans-serif";
-      ctx.fillText("FREE ($0.00)", 925, 195);
+      ctx.font = "900 21px system-ui, -apple-system, sans-serif";
+      ctx.fillText("FREE ($0.00)", 932, 191);
 
       ctx.fillStyle = "#3b82f6";
-      roundRect(ctx, 712, 220, 230, 44, 10);
+      roundRect(ctx, 730, 215, 215, 42, 8);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("🔥 Claim Free Game →", 732, 248);
+      ctx.font = "800 16px system-ui, -apple-system, sans-serif";
+      ctx.fillText("🔥 Claim Free Game →", 750, 241);
 
       // Card 2: -94% Flash Price Glitch
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur = 30;
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 24;
       ctx.fillStyle = "#1e293b";
-      roundRect(ctx, 680, 325, 455, 205, 18);
+      roundRect(ctx, 700, 320, 420, 202, 16);
       ctx.fill();
       ctx.restore();
 
       ctx.fillStyle = "#f97316";
-      roundRect(ctx, 680, 325, 10, 205, [18, 0, 0, 18]);
+      roundRect(ctx, 700, 320, 8, 202, [16, 0, 0, 16]);
       ctx.fill();
 
       ctx.fillStyle = "#fb923c";
-      ctx.font = "800 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("⚡ -94% FLASH PRICE GLITCH", 712, 362);
+      ctx.font = "800 15px system-ui, -apple-system, sans-serif";
+      ctx.fillText("⚡ -94% FLASH PRICE GLITCH", 730, 355);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 24px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Verified Official Steam Key", 712, 398);
+      ctx.font = "800 22px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Verified Official Steam Key", 730, 389);
 
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "600 18px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Retail: $49.99  →", 712, 435);
+      ctx.font = "600 17px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Retail: $49.99  →", 730, 426);
 
       ctx.fillStyle = "#fb923c";
-      ctx.font = "900 24px system-ui, -apple-system, sans-serif";
-      ctx.fillText("$2.99 (-94%)", 865, 435);
+      ctx.font = "900 22px system-ui, -apple-system, sans-serif";
+      ctx.fillText("$2.99 (-94%)", 874, 426);
 
       ctx.fillStyle = "#10b981";
-      roundRect(ctx, 712, 460, 230, 44, 10);
+      roundRect(ctx, 730, 450, 215, 42, 8);
       ctx.fill();
       ctx.fillStyle = "#052e16";
-      ctx.font = "900 17px system-ui, -apple-system, sans-serif";
-      ctx.fillText("⚡ Grab Deal ($2.99) →", 732, 488);
+      ctx.font = "900 16px system-ui, -apple-system, sans-serif";
+      ctx.fillText("⚡ Grab Deal ($2.99) →", 750, 476);
     }
 
     function downloadCanvas(id, filename) {
