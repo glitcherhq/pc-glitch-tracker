@@ -23,6 +23,9 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
+        <span id="dealCountBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+          Loading deals...
+        </span>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           API Feed Live
@@ -38,25 +41,25 @@
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Automated Price-Error & Deal Engine</span>
         <h2 class="text-2xl font-extrabold text-white mt-1">Verified Official Steam Key Discounts</h2>
         <p class="text-sm text-slate-300 mt-1 max-w-2xl">
-          We monitor authorized digital distributors—including <strong>Fanatical</strong>, <strong>Humble Store</strong>, and <strong>Green Man Gaming</strong>—every 15 minutes for flash price drops, publisher sales, and all-time historical lows.
+          We monitor authorized digital distributors—including <strong>Fanatical</strong>, <strong>Humble Store</strong>, and <strong>Green Man Gaming</strong>—for flash price drops, publisher sales, and all-time historical lows.
         </p>
       </div>
-<div class="shrink-0 bg-slate-950/70 border border-slate-700 rounded-xl p-4 text-center w-full md:w-auto">
-     <div class="text-xs text-slate-400">Official Discord Bot</div>
-     <div class="text-sm font-bold text-white mt-0.5">Steam Freebies & Glitch Radar</div>
-     <a
-       href="https://discord.com/oauth2/authorize?client_id=1560549066243580034&permissions=19456&scope=bot%20applications.commands"
-       target="_blank"
-       rel="noopener noreferrer"
-       class="inline-block mt-2 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
-     >
-       + Add Bot to Discord →
-     </a>
-   </div>
+      <div class="shrink-0 bg-slate-950/70 border border-slate-700 rounded-xl p-4 text-center w-full md:w-auto">
+        <div class="text-xs text-slate-400">Official Discord Bot</div>
+        <div class="text-sm font-bold text-white mt-0.5">Steam Freebies & Glitch Radar</div>
+        <a
+          href="https://discord.com/oauth2/authorize?client_id=1560549066243580034&permissions=19456&scope=bot%20applications.commands"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block mt-2 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
+        >
+          + Add Bot to Discord →
+        </a>
+      </div>
     </div>
 
-    <!-- Filters & Search -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+    <!-- Store Filters, Sort Dropdown & Search -->
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-6">
       <div class="flex flex-wrap gap-2" id="storeFilters">
         <button data-store="all" class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-slate-950 transition">All Official Stores</button>
         <button data-store="15" class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Fanatical</button>
@@ -64,24 +67,49 @@
         <button data-store="2" class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Green Man Gaming</button>
         <button data-store="glitch" class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition">🔥 75%+ Off Only</button>
       </div>
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="Filter games by title..."
-        class="px-3.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-      />
+
+      <div class="flex flex-col sm:flex-row gap-2">
+        <select
+          id="sortSelect"
+          class="px-3.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500"
+        >
+          <option value="Deal Rating">🔥 Sort: Hottest Deal Rating</option>
+          <option value="Recent">⚡ Sort: Newest Price Drops</option>
+          <option value="Savings">💰 Sort: Biggest Discount %</option>
+          <option value="Reviews">⭐ Sort: Highest Steam Rating</option>
+          <option value="Price">💵 Sort: Lowest Price First</option>
+        </select>
+
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search hundreds of games..."
+          class="px-3.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+        />
+      </div>
     </div>
   </section>
 
   <!-- Deals Grid -->
   <main class="max-w-6xl mx-auto px-4 pb-12 w-full flex-grow">
     <div id="loadingState" class="text-center py-16 text-slate-400 text-sm">
-      Scanning official store feeds for steepest discounts...
+      Scanning official store feeds for live discounts...
     </div>
     <div id="dealsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
+
+    <!-- Load More Button -->
+    <div id="loadMoreWrap" class="text-center mt-8 hidden">
+      <button
+        id="loadMoreBtn"
+        onclick="loadMorePages()"
+        class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-sm font-bold transition shadow"
+      >
+        + Load 120 More Game Deals
+      </button>
+    </div>
   </main>
 
-  <!-- Mandatory Compliance Footer for Affiliate Approval -->
+  <!-- Mandatory Compliance Footer -->
   <footer class="border-t border-slate-800 bg-slate-950 py-8 px-4 text-xs text-slate-400">
     <div class="max-w-6xl mx-auto space-y-3">
       <p class="font-semibold text-slate-300">Affiliate Disclosure & Publisher Transparency</p>
@@ -96,11 +124,8 @@
   </footer>
 
   <script>
-    // ============================================================================
-    // STEP 2 AFFILIATE CONFIG (Leave empty for now; paste prefixes once approved)
-    // ============================================================================
-    const CJ_WRAPPER = "";         // Example later: "https://www.dpbolvw.net/click-XXXXXXX-XXXXXXX?url="
-    const HUMBLE_WRAPPER = "";     // Example later: "https://humblebundleinc.sjv.io/c/XXXXXXX/XXXXXXX/XXXX?u="
+    const CJ_WRAPPER = "";
+    const HUMBLE_WRAPPER = "";
 
     const STORE_NAMES = {
       "15": { name: "Fanatical", badge: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
@@ -109,7 +134,10 @@
     };
 
     let allDeals = [];
+    let seenDealIds = new Set();
     let activeFilter = "all";
+    let currentSort = "Deal Rating";
+    let nextPage = 0;
 
     function buildDealLink(deal) {
       const baseRedirect = `https://www.cheapshark.com/redirect?dealID=${deal.dealID}`;
@@ -122,15 +150,65 @@
       return baseRedirect;
     }
 
-    async function loadDeals() {
+    async function fetchPage(pageNum, sortBy) {
+      const url = `https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=0.5&pageSize=60&pageNumber=${pageNum}&sortBy=${encodeURIComponent(sortBy)}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      return await res.json();
+    }
+
+    async function loadInitialDeals() {
+      document.getElementById("loadingState").classList.remove("hidden");
+      document.getElementById("dealsGrid").classList.add("hidden");
+      document.getElementById("loadMoreWrap").classList.add("hidden");
+      allDeals = [];
+      seenDealIds.clear();
+      nextPage = 0;
+
       try {
-        const res = await fetch("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=36&sortBy=Savings");
-        allDeals = await res.json();
+        // Fetch 3 pages (up to 180 games) in parallel right away
+        const [p0, p1, p2] = await Promise.all([
+          fetchPage(0, currentSort),
+          fetchPage(1, currentSort),
+          fetchPage(2, currentSort)
+        ]);
+        nextPage = 3;
+        [...p0, ...p1, ...p2].forEach(d => {
+          if (!seenDealIds.has(d.dealID)) {
+            seenDealIds.add(d.dealID);
+            allDeals.push(d);
+          }
+        });
+
         document.getElementById("loadingState").classList.add("hidden");
         document.getElementById("dealsGrid").classList.remove("hidden");
+        document.getElementById("loadMoreWrap").classList.remove("hidden");
         renderDeals();
       } catch (err) {
         document.getElementById("loadingState").textContent = "Unable to reach pricing API. Please refresh in a moment.";
+      }
+    }
+
+    async function loadMorePages() {
+      const btn = document.getElementById("loadMoreBtn");
+      btn.textContent = "Loading more deals...";
+      btn.disabled = true;
+      try {
+        const [pA, pB] = await Promise.all([
+          fetchPage(nextPage, currentSort),
+          fetchPage(nextPage + 1, currentSort)
+        ]);
+        nextPage += 2;
+        [...pA, ...pB].forEach(d => {
+          if (!seenDealIds.has(d.dealID)) {
+            seenDealIds.add(d.dealID);
+            allDeals.push(d);
+          }
+        });
+        renderDeals();
+      } finally {
+        btn.textContent = "+ Load 120 More Game Deals";
+        btn.disabled = false;
       }
     }
 
@@ -146,6 +224,8 @@
         if (activeFilter === "glitch") return savings >= 75;
         return d.storeID === activeFilter;
       });
+
+      document.getElementById("dealCountBadge").textContent = `${filtered.length} Active Deals`;
 
       if (filtered.length === 0) {
         grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-sm">No active deals match that filter right now.</div>`;
@@ -211,8 +291,13 @@
       });
     });
 
+    document.getElementById("sortSelect").addEventListener("change", (e) => {
+      currentSort = e.target.value;
+      loadInitialDeals();
+    });
+
     document.getElementById("searchInput").addEventListener("input", renderDeals);
-    loadDeals();
+    loadInitialDeals();
   </script>
 </body>
 </html>
