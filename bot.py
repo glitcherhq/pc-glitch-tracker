@@ -10,7 +10,7 @@ from discord import app_commands
 from discord.ext import tasks
 
 # =====================================================================
-# 1. OPEN RENDER PORT INSTANTLY IN A BACKGROUND THREAD (NEVER BLOCKS)
+# 1. KEEP RENDER PORT OPEN IN BACKGROUND THREAD
 # =====================================================================
 class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -34,7 +34,7 @@ def open_render_port():
 threading.Thread(target=open_render_port, daemon=True).start()
 
 # =====================================================================
-# 2. BOT CONFIGURATION (Reads token from Render's Environment tab)
+# 2. BOT CONFIGURATION
 # =====================================================================
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
 CJ_WRAPPER = os.getenv("CJ_WRAPPER", "").strip()
@@ -98,7 +98,7 @@ class DealButtons(discord.ui.View):
     def __init__(self, primary_label: str, primary_url: str):
         super().__init__(timeout=None)
         self.add_item(discord.ui.Button(label=primary_label, url=primary_url, style=discord.ButtonStyle.link, emoji="🔥"))
-        self.add_item(discord.ui.Button(label="Live Web Radar", url=WEB_RADAR_URL, style=discord.ButtonStyle.link, emoji="⚡"))
+        self.add_item(discord.ui.Button(label="Browse 200+ Live Deals", url=WEB_RADAR_URL, style=discord.ButtonStyle.link, emoji="⚡"))
 
 class GlitchRadarBot(discord.Client):
     def __init__(self):
@@ -127,7 +127,7 @@ async def keep_alive_ping():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(RENDER_URL) as resp:
-                    print(f"💓 Self-ping keep-alive status: {resp.status}", flush=True)
+                    print(f"💓 Self-ping status: {resp.status}", flush=True)
         except Exception:
             pass
 
@@ -188,7 +188,7 @@ async def send_sample_drops(send_func):
         except Exception:
             pass
         try:
-            async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=5&sortBy=Savings") as r2:
+            async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=15&sortBy=Recent") as r2:
                 if r2.status == 200:
                     deals = await r2.json()
                     if deals:
@@ -197,77 +197,88 @@ async def send_sample_drops(send_func):
         except Exception:
             pass
 
-@bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and 75%+ Price Glitch alerts.")
+@bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **Flash Price Glitch** right now..."
+        "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **New Price Drop** right now..."
     )
     cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (interaction.guild_id, interaction.channel_id))
     conn.commit()
     await send_sample_drops(interaction.followup.send)
 
-@tasks.loop(minutes=30)
+# =====================================================================
+# LOOP 1: CHECK FOR NEW 100% FREE GAMES EVERY 45 MINUTES
+# =====================================================================
+@tasks.loop(minutes=45)
 async def check_free_games():
     channels = get_target_channels()
     if not channels:
         return
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
-        async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc&type=game") as resp:
-            if resp.status != 200:
-                return
-            giveaways = await resp.json()
-    cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'free_%'")
-    is_first_boot = cursor.fetchone()[0] == 0
-    for idx, item in enumerate(giveaways[:5]):
-        item_id = f"free_{item['id']}"
-        cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
-            conn.commit()
-            if not is_first_boot or idx == 0:
-                embed, view = format_freebie_embed(item)
-                for ch in channels:
-                    try:
-                        await ch.send(embed=embed, view=view)
-                    except Exception:
-                        pass
+    try:
+        async with aiohttp.ClientSession(headers=HEADERS) as session:
+            async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc&type=game") as resp:
+                if resp.status != 200:
+                    return
+                giveaways = await resp.json()
 
-@tasks.loop(minutes=15)
+        cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'free_%'")
+        is_first_boot = cursor.fetchone()[0] == 0
+
+        for idx, item in enumerate(giveaways[:8]):
+            item_id = f"free_{item['id']}"
+            cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
+            if not cursor.fetchone():
+                cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
+                conn.commit()
+                if not is_first_boot or idx == 0:
+                    embed, view = format_freebie_embed(item)
+                    for ch in channels:
+                        try:
+                            await ch.send(embed=embed, view=view)
+                        except Exception:
+                            pass
+    except Exception as e:
+        print(f"Freebie loop error: {e}", flush=True)
+
+# =====================================================================
+# LOOP 2: DRIP-FEED 1 NEWEST DEAL EVERY 2 HOURS (NEVER GOES SILENT)
+# =====================================================================
+@tasks.loop(hours=2)
 async def check_price_glitches():
     channels = get_target_channels()
     if not channels:
         return
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
-        async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=10&sortBy=Savings") as resp:
-            if resp.status != 200:
-                return
-            deals = await resp.json()
-    cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'deal_%'")
-    is_first_boot = cursor.fetchone()[0] == 0
-    for idx, deal in enumerate(deals):
-        if round(float(deal.get("savings", 0))) < 75:
-            continue
-        item_id = f"deal_{deal['dealID']}"
-        cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
-            conn.commit()
-            if not is_first_boot or idx == 0:
+    try:
+        # Query sortBy=Recent with 60 deals so we catch brand-new discounts immediately
+        url = "https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=60&sortBy=Recent"
+        async with aiohttp.ClientSession(headers=HEADERS) as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    return
+                deals = await resp.json()
+
+        for deal in deals:
+            if round(float(deal.get("savings", 0))) < 55:
+                continue
+            item_id = f"deal_{deal['dealID']}"
+            cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
+            if not cursor.fetchone():
+                cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
+                conn.commit()
                 embed, view = format_glitch_embed(deal)
                 for ch in channels:
                     try:
                         await ch.send(embed=embed, view=view)
                     except Exception:
                         pass
+                # Stop after posting 1 fresh deal so we drip-feed steadily every 2 hours
+                break
+    except Exception as e:
+        print(f"Deal loop error: {e}", flush=True)
 
 if __name__ == "__main__":
     if not BOT_TOKEN:
-        print("❌ ERROR: DISCORD_BOT_TOKEN is empty! Add it in Render -> Environment.", flush=True)
+        print("❌ ERROR: DISCORD_BOT_TOKEN is empty!", flush=True)
         while True:
             time.sleep(60)
-    try:
-        bot.run(BOT_TOKEN)
-    except Exception as e:
-        print(f"❌ DISCORD LOGIN ERROR (Reset your token in Discord Dev Portal!): {e}", flush=True)
-        while True:
-            time.sleep(60)
+    bot.run(BOT_TOKEN)
