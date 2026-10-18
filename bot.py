@@ -1,4 +1,5 @@
 import http.server
+import json
 import os
 import sqlite3
 import threading
@@ -9,14 +10,25 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-# =====================================================================
-# 1. KEEP RENDER PORT OPEN IN BACKGROUND THREAD
-# =====================================================================
+# Live stats dictionary shared with your .onrender.com web page
+LIVE_STATS = {"servers": 0, "users": 0, "recent_servers": []}
+
 class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(b"Steam Freebies & Glitch Radar Bot is LIVE 24/7!")
+        recent_html = "".join(f"<li>{s}</li>" for s in LIVE_STATS["recent_servers"]) or "<li>Waiting for new installs...</li>"
+        html = f"""
+        <html><body style="background:#0b0f19;color:#e2e8f0;font-family:sans-serif;padding:30px;">
+          <h2 style="color:#10b981;">⚡ Steam Freebies & Glitch Radar — Live Bot Telemetry</h2>
+          <p><strong>Active Discord Servers:</strong> {LIVE_STATS['servers']}</p>
+          <p><strong>Total Gamers Reached:</strong> {LIVE_STATS['users']:,}</p>
+          <h4>Newest Servers Installed:</h4>
+          <ul>{recent_html}</ul>
+        </body></html>
+        """
+        self.wfile.write(html.encode("utf-8"))
 
     def do_HEAD(self):
         self.send_response(200)
@@ -33,9 +45,6 @@ def open_render_port():
 
 threading.Thread(target=open_render_port, daemon=True).start()
 
-# =====================================================================
-# 2. BOT CONFIGURATION
-# =====================================================================
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
 CJ_WRAPPER = os.getenv("CJ_WRAPPER", "").strip()
 HUMBLE_WRAPPER = os.getenv("HUMBLE_WRAPPER", "").strip()
@@ -58,6 +67,11 @@ cursor = conn.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
 cursor.execute("CREATE TABLE IF NOT EXISTS posted_items (item_id TEXT PRIMARY KEY)")
 conn.commit()
+
+def update_telemetry():
+    LIVE_STATS["servers"] = len(bot.guilds)
+    LIVE_STATS["users"] = sum(g.member_count or 0 for g in bot.guilds)
+    LIVE_STATS["recent_servers"] = [f"{g.name} ({g.member_count or '?'} members)" for g in list(bot.guilds)[-10:]]
 
 def wrap_affiliate_link(deal_id: str, store_id: str) -> str:
     base_url = f"https://www.cheapshark.com/redirect?dealID={deal_id}"
@@ -112,8 +126,9 @@ bot = GlitchRadarBot()
 
 @bot.event
 async def on_ready():
+    update_telemetry()
     print(f"🚀 24/7 CLOUD BOT ONLINE as {bot.user} across {len(bot.guilds)} server(s)!", flush=True)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for 100% Free Games & Glitches"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
     if not keep_alive_ping.is_running():
         keep_alive_ping.start()
     if not check_free_games.is_running():
@@ -121,23 +136,31 @@ async def on_ready():
     if not check_price_glitches.is_running():
         check_price_glitches.start()
 
-@tasks.loop(minutes=10)
-async def keep_alive_ping():
-    if RENDER_URL:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(RENDER_URL) as resp:
-                    print(f"💓 Self-ping status: {resp.status}", flush=True)
-        except Exception:
-            pass
-
 @bot.event
 async def on_guild_join(guild: discord.Guild):
+    update_telemetry()
+    print(f"🎉 NEW SERVER INSTALLED BOT: {guild.name} ({guild.member_count} members) | Total Servers: {len(bot.guilds)}", flush=True)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
     ch = pick_best_channel(guild)
     if ch:
         cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild.id, ch.id))
         conn.commit()
         await send_sample_drops(ch.send)
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    update_telemetry()
+
+@tasks.loop(minutes=10)
+async def keep_alive_ping():
+    update_telemetry()
+    if RENDER_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(RENDER_URL) as resp:
+                    pass
+        except Exception:
+            pass
 
 def format_glitch_embed(deal: dict):
     savings = round(float(deal.get("savings", 0)))
@@ -206,9 +229,17 @@ async def setchannel(interaction: discord.Interaction):
     conn.commit()
     await send_sample_drops(interaction.followup.send)
 
-# =====================================================================
-# LOOP 1: CHECK FOR NEW 100% FREE GAMES EVERY 45 MINUTES
-# =====================================================================
+@bot.tree.command(name="stats", description="Check how many Discord servers and gamers are using this bot.")
+async def stats(interaction: discord.Interaction):
+    update_telemetry()
+    await interaction.response.send_message(
+        f"📊 **Live Bot Telemetry**\n"
+        f"• **Active Servers:** `{LIVE_STATS['servers']}`\n"
+        f"• **Total Gamers Reached:** `{LIVE_STATS['users']:,}`\n"
+        f"• **Newest Installs:** {', '.join(LIVE_STATS['recent_servers'][-5:])}",
+        ephemeral=True
+    )
+
 @tasks.loop(minutes=45)
 async def check_free_games():
     channels = get_target_channels()
@@ -240,16 +271,12 @@ async def check_free_games():
     except Exception as e:
         print(f"Freebie loop error: {e}", flush=True)
 
-# =====================================================================
-# LOOP 2: DRIP-FEED 1 NEWEST DEAL EVERY 2 HOURS (NEVER GOES SILENT)
-# =====================================================================
 @tasks.loop(hours=2)
 async def check_price_glitches():
     channels = get_target_channels()
     if not channels:
         return
     try:
-        # Query sortBy=Recent with 60 deals so we catch brand-new discounts immediately
         url = "https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=60&sortBy=Recent"
         async with aiohttp.ClientSession(headers=HEADERS) as session:
             async with session.get(url) as resp:
@@ -271,14 +298,12 @@ async def check_price_glitches():
                         await ch.send(embed=embed, view=view)
                     except Exception:
                         pass
-                # Stop after posting 1 fresh deal so we drip-feed steadily every 2 hours
                 break
     except Exception as e:
         print(f"Deal loop error: {e}", flush=True)
 
 if __name__ == "__main__":
     if not BOT_TOKEN:
-        print("❌ ERROR: DISCORD_BOT_TOKEN is empty!", flush=True)
         while True:
             time.sleep(60)
     bot.run(BOT_TOKEN)
