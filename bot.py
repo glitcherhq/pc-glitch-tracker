@@ -1,5 +1,4 @@
 import http.server
-import json
 import os
 import sqlite3
 import threading
@@ -10,7 +9,6 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-# Live stats dictionary shared with your .onrender.com web page
 LIVE_STATS = {"servers": 0, "users": 0, "recent_servers": []}
 
 class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
@@ -52,7 +50,7 @@ RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "").strip()
 WEB_RADAR_URL = "https://glitcherhq.github.io/pc-glitch-tracker/"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json"
 }
 
@@ -60,6 +58,7 @@ STORE_INFO = {
     "15": {"name": "Fanatical", "color": 0xF97316},
     "21": {"name": "Humble Store", "color": 0xEF4444},
     "2":  {"name": "Green Man Gaming", "color": 0x84CC16},
+    "steam": {"name": "Official Steam / Fanatical", "color": 0xF97316},
 }
 
 conn = sqlite3.connect("bot_data.db")
@@ -73,13 +72,12 @@ def update_telemetry():
     LIVE_STATS["users"] = sum(g.member_count or 0 for g in bot.guilds)
     LIVE_STATS["recent_servers"] = [f"{g.name} ({g.member_count or '?'} members)" for g in list(bot.guilds)[-10:]]
 
-def wrap_affiliate_link(deal_id: str, store_id: str) -> str:
-    base_url = f"https://www.cheapshark.com/redirect?dealID={deal_id}"
+def wrap_affiliate_link(raw_url: str, store_id: str) -> str:
     if store_id == "21" and HUMBLE_WRAPPER:
-        return HUMBLE_WRAPPER + urllib.parse.quote(base_url, safe="")
-    if store_id in ("15", "2") and CJ_WRAPPER:
-        return CJ_WRAPPER + urllib.parse.quote(base_url, safe="")
-    return base_url
+        return HUMBLE_WRAPPER + urllib.parse.quote(raw_url, safe="")
+    if store_id in ("15", "2", "steam") and CJ_WRAPPER:
+        return CJ_WRAPPER + urllib.parse.quote(raw_url, safe="")
+    return raw_url
 
 def pick_best_channel(guild: discord.Guild):
     keywords = ("free", "deal", "glitch", "giveaway", "game", "alert", "general", "chat")
@@ -139,17 +137,12 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     update_telemetry()
-    print(f"🎉 NEW SERVER INSTALLED BOT: {guild.name} ({guild.member_count} members) | Total Servers: {len(bot.guilds)}", flush=True)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
+    print(f"🎉 NEW SERVER INSTALLED BOT: {guild.name} ({guild.member_count} members)", flush=True)
     ch = pick_best_channel(guild)
     if ch:
         cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild.id, ch.id))
         conn.commit()
         await send_sample_drops(ch.send)
-
-@bot.event
-async def on_guild_remove(guild: discord.Guild):
-    update_telemetry()
 
 @tasks.loop(minutes=10)
 async def keep_alive_ping():
@@ -158,7 +151,7 @@ async def keep_alive_ping():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(RENDER_URL) as resp:
-                    pass
+                    print(f"💓 Self-ping status: {resp.status} | Active Servers: {LIVE_STATS['servers']}", flush=True)
         except Exception:
             pass
 
@@ -166,18 +159,20 @@ def format_glitch_embed(deal: dict):
     savings = round(float(deal.get("savings", 0)))
     store_id = str(deal.get("storeID", "15"))
     store = STORE_INFO.get(store_id, {"name": "Official Store", "color": 0x10B981})
-    deal_url = wrap_affiliate_link(deal["dealID"], store_id)
+    raw_url = deal.get("custom_url") or f"https://www.cheapshark.com/redirect?dealID={deal['dealID']}"
+    deal_url = wrap_affiliate_link(raw_url, store_id)
+
     embed = discord.Embed(
         title=f"⚡ -{savings}% PRICE DROP: {deal['title']}",
         description=(
-            f"Verified official Steam key discount spotted on **{store['name']}**.\n\n"
+            f"Verified official Steam discount spotted on **{store['name']}**.\n\n"
             f"💰 **Sale Price:** `${deal['salePrice']}` ~~${deal['normalPrice']}~~ (**{savings}% OFF**)\n"
-            f"⭐ **Steam Rating:** `{deal.get('steamRatingPercent', 'Verified')}%`"
+            f"⭐ **Rating:** `{deal.get('steamRatingPercent', 'Verified')}`"
         ),
         color=store["color"]
     )
     if deal.get("thumb"):
-        embed.set_thumbnail(url=deal["thumb"])
+        embed.set_image(url=deal["thumb"])
     embed.set_footer(text="PC Glitch & Low Radar • Official Authorized Key Retailers Only")
     view = DealButtons(primary_label=f"Grab Deal (${deal['salePrice']}) →", primary_url=deal_url)
     return embed, view
@@ -199,6 +194,58 @@ def format_freebie_embed(item: dict):
     view = DealButtons(primary_label="Claim Free Game ($0.00) →", primary_url=item["open_giveaway_url"])
     return embed, view
 
+async def fetch_live_deals(session: aiohttp.ClientSession):
+    """Tries CheapShark first; if Cloudflare blocks Render's IP, automatically uses Valve's Official Steam Specials API."""
+    try:
+        url = "https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=40&sortBy=Recent"
+        async with session.get(url, timeout=10) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                if data:
+                    print(f"✅ Loaded {len(data)} deals from CheapShark.", flush=True)
+                    return data
+            else:
+                print(f"⚠️ CheapShark returned status {resp.status}, switching to official Steam API backup...", flush=True)
+    except Exception as e:
+        print(f"⚠️ CheapShark unreachable ({e}), switching to official Steam API backup...", flush=True)
+
+    # Backup Engine: Official Valve Steam Storefront API (Never blocks Render IPs)
+    steam_deals = []
+    try:
+        steam_url = "https://store.steampowered.com/api/featuredcategories?cc=us&l=en"
+        async with session.get(steam_url, timeout=10) as resp:
+            if resp.status == 200:
+                sdata = await resp.json()
+                buckets = [
+                    sdata.get("specials", {}).get("items", []),
+                    sdata.get("top_sellers", {}).get("items", []),
+                    sdata.get("new_releases", {}).get("items", [])
+                ]
+                seen_ids = set()
+                for bucket in buckets:
+                    for item in bucket:
+                        app_id = item.get("id")
+                        discount = item.get("discount_percent", 0)
+                        if discount >= 40 and app_id not in seen_ids:
+                            seen_ids.add(app_id)
+                            title = item.get("name", "Steam Game")
+                            fanatical_search = f"https://www.fanatical.com/en/search?search={urllib.parse.quote(title)}"
+                            steam_deals.append({
+                                "dealID": f"steam_{app_id}_{discount}",
+                                "title": title,
+                                "savings": str(discount),
+                                "salePrice": f"{item.get('final_price', 0) / 100:.2f}",
+                                "normalPrice": f"{item.get('original_price', 0) / 100:.2f}",
+                                "storeID": "steam",
+                                "steamRatingPercent": "Steam Featured",
+                                "thumb": item.get("large_capsule_image") or item.get("header_image"),
+                                "custom_url": fanatical_search
+                            })
+                print(f"✅ Loaded {len(steam_deals)} discounted games from Official Steam API.", flush=True)
+    except Exception as e:
+        print(f"❌ Steam API error: {e}", flush=True)
+    return steam_deals
+
 async def send_sample_drops(send_func):
     async with aiohttp.ClientSession(headers=HEADERS) as session:
         try:
@@ -208,22 +255,18 @@ async def send_sample_drops(send_func):
                     if freebies:
                         e1, v1 = format_freebie_embed(freebies[0])
                         await send_func(embed=e1, view=v1)
-        except Exception:
-            pass
-        try:
-            async with session.get("https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=15&sortBy=Recent") as r2:
-                if r2.status == 200:
-                    deals = await r2.json()
-                    if deals:
-                        e2, v2 = format_glitch_embed(deals[0])
-                        await send_func(embed=e2, view=v2)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Sample freebie error: {e}", flush=True)
+
+        deals = await fetch_live_deals(session)
+        if deals:
+            e2, v2 = format_glitch_embed(deals[0])
+            await send_func(embed=e2, view=v2)
 
 @bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **New Price Drop** right now..."
+        "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **Live Price Drop** right now..."
     )
     cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (interaction.guild_id, interaction.channel_id))
     conn.commit()
@@ -247,27 +290,25 @@ async def check_free_games():
         return
     try:
         async with aiohttp.ClientSession(headers=HEADERS) as session:
-            async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc&type=game") as resp:
+            async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc") as resp:
                 if resp.status != 200:
                     return
                 giveaways = await resp.json()
 
-        cursor.execute("SELECT COUNT(*) FROM posted_items WHERE item_id LIKE 'free_%'")
-        is_first_boot = cursor.fetchone()[0] == 0
-
-        for idx, item in enumerate(giveaways[:8]):
+        for item in giveaways[:10]:
             item_id = f"free_{item['id']}"
             cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
             if not cursor.fetchone():
                 cursor.execute("INSERT INTO posted_items (item_id) VALUES (?)", (item_id,))
                 conn.commit()
-                if not is_first_boot or idx == 0:
-                    embed, view = format_freebie_embed(item)
-                    for ch in channels:
-                        try:
-                            await ch.send(embed=embed, view=view)
-                        except Exception:
-                            pass
+                embed, view = format_freebie_embed(item)
+                for ch in channels:
+                    try:
+                        await ch.send(embed=embed, view=view)
+                    except Exception:
+                        pass
+                print(f"🎁 Broadcasted Freebie: {item['title']}", flush=True)
+                break
     except Exception as e:
         print(f"Freebie loop error: {e}", flush=True)
 
@@ -277,15 +318,11 @@ async def check_price_glitches():
     if not channels:
         return
     try:
-        url = "https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=60&sortBy=Recent"
         async with aiohttp.ClientSession(headers=HEADERS) as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    return
-                deals = await resp.json()
+            deals = await fetch_live_deals(session)
 
         for deal in deals:
-            if round(float(deal.get("savings", 0))) < 55:
+            if round(float(deal.get("savings", 0))) < 45:
                 continue
             item_id = f"deal_{deal['dealID']}"
             cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
@@ -298,6 +335,7 @@ async def check_price_glitches():
                         await ch.send(embed=embed, view=view)
                     except Exception:
                         pass
+                print(f"⚡ Broadcasted Price Drop: {deal['title']} (-{deal['savings']}%)", flush=True)
                 break
     except Exception as e:
         print(f"Deal loop error: {e}", flush=True)
