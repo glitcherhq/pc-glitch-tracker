@@ -2,21 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Text-Free Cyberpunk Background & Avatar Generator</title>
+  <title>Bot Avatar & Card Banner Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-8 font-sans">
-  <div class="max-w-5xl mx-auto space-y-8">
+  <div class="max-w-5xl mx-auto space-y-10">
     <div>
-      <h1 class="text-2xl font-extrabold text-emerald-400">⚡ Top.gg Text-Free Background & Avatar Pack</h1>
-      <p class="text-sm text-slate-400 mt-1">Zero text so Top.gg and Discord never cut anything off on any screen size.</p>
+      <h1 class="text-2xl font-extrabold text-emerald-400">⚡ Steam Freebies & Glitch Radar — Graphics Pack (v4)</h1>
+      <p class="text-sm text-slate-400 mt-1">Both original square-ish and circular Discord-ready avatars are available below.</p>
     </div>
 
-    <!-- 1. TEXT-FREE CYBERPUNK BACKGROUND -->
-    <div class="bg-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 space-y-4">
+    <!-- 1. BOT AVATAR OPTIONS -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <h2 class="text-xl font-bold">1. Official Bot Avatar (512 × 512 PNG)</h2>
+        <p class="text-sm text-slate-400 mt-1">Choose between the original square-ish style or the perfectly circular variant optimized for Discord's cutouts.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Original Square Avatar -->
+        <div class="bg-slate-950 p-6 rounded-xl border border-slate-850 flex flex-col items-center gap-4 text-center">
+          <canvas id="avatarCanvas" width="512" height="512" class="w-44 h-44 rounded-2xl border border-slate-700 shadow-lg"></canvas>
+          <div class="space-y-2">
+            <h3 class="font-bold text-white text-base">Original Square-ish Avatar</h3>
+            <p class="text-xs text-slate-400 max-w-xs">Keeps the exact 90px rounded-square boundary exactly as you had it previously.</p>
+            <button onclick="downloadCanvas('avatarCanvas', 'avatar-original.png')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-extrabold rounded-lg text-xs border border-slate-700 transition shadow">
+              ⬇ Download avatar-original.png
+            </button>
+          </div>
+        </div>
+
+        <!-- New Circular Avatar -->
+        <div class="bg-slate-950 p-6 rounded-xl border border-emerald-500/20 flex flex-col items-center gap-4 text-center">
+          <canvas id="circleAvatarCanvas" width="512" height="512" class="w-44 h-44 rounded-full border border-emerald-500 shadow-lg"></canvas>
+          <div class="space-y-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">RECOMMENDED FOR DISCORD BOT ICON</span>
+            <h3 class="font-bold text-emerald-400 text-base mt-1">Perfect Circular Avatar</h3>
+            <p class="text-xs text-slate-400 max-w-xs">Draws a 360-degree round green boundary that conforms exactly with Discord's round crop to ensure zero clipping.</p>
+            <button onclick="downloadCanvas('circleAvatarCanvas', 'avatar-circular.png')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-lg text-xs transition shadow">
+              ⬇ Download avatar-circular.png
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. TEXT-FREE CYBERPUNK CARD BACKGROUND -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold">1. Text-Free Cyberpunk Radar Skyline (1600 × 640 PNG)</h2>
+          <h2 class="text-xl font-bold">2. Text-Free Cyberpunk Radar Skyline (1600 × 640 PNG)</h2>
           <p class="text-sm text-slate-400">Upload this under <strong>Background image</strong> on Top.gg Appearance.</p>
         </div>
         <button onclick="downloadCanvas('bgCanvas', 'bg-no-text.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow shrink-0">
@@ -25,143 +60,17 @@
       </div>
       <canvas id="bgCanvas" width="1600" height="640" class="w-full rounded-xl border border-slate-700 shadow-lg"></canvas>
     </div>
-
-    <!-- 2. TEXT-FREE AVATAR -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-8">
-      <canvas id="avatarCanvas" width="512" height="512" class="w-40 h-40 rounded-2xl border border-slate-700 shadow-lg"></canvas>
-      <div class="space-y-3">
-        <h2 class="text-xl font-bold">2. Clean Text-Free Lightning Avatar (512 × 512 PNG)</h2>
-        <p class="text-sm text-slate-400">Matches the #00CC88 emerald glow with zero text.</p>
-        <button onclick="downloadCanvas('avatarCanvas', 'avatar-clean.png')" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition shadow">
-          ⬇ Download avatar-clean.png
-        </button>
-      </div>
-    </div>
   </div>
 
   <script>
-    function drawNoTextBackground() {
-      const c = document.getElementById("bgCanvas");
-      const ctx = c.getContext("2d");
-
-      // Deep Cyberpunk Night Sky
-      const sky = ctx.createLinearGradient(0, 0, 0, 640);
-      sky.addColorStop(0, "#040710");
-      sky.addColorStop(0.5, "#0a1428");
-      sky.addColorStop(0.85, "#072621");
-      sky.addColorStop(1, "#040811");
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, 1600, 640);
-
-      // Perspective Cyber Grid in Upper Sky
-      ctx.strokeStyle = "rgba(0, 204, 136, 0.07)";
-      ctx.lineWidth = 1;
-      for (let x = 0; x <= 1600; x += 64) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 640); ctx.stroke();
-      }
-      for (let y = 0; y <= 640; y += 64) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1600, y); ctx.stroke();
-      }
-
-      // Central Glowing Radar Sun / Pulse (Centered so it never gets cut off)
-      const cx = 800, cy = 250;
-      const pulse = ctx.createRadialGradient(cx, cy, 10, cx, cy, 380);
-      pulse.addColorStop(0, "rgba(0, 204, 136, 0.50)");
-      pulse.addColorStop(0.35, "rgba(16, 185, 129, 0.22)");
-      pulse.addColorStop(0.7, "rgba(6, 182, 212, 0.08)");
-      pulse.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = pulse;
-      ctx.fillRect(0, 0, 1600, 640);
-
-      // Concentric Radar Rings & Sweep Line
-      [75, 135, 195, 260, 330].forEach((r, idx) => {
-        ctx.strokeStyle = idx % 2 === 0 ? "rgba(0, 204, 136, 0.35)" : "rgba(56, 189, 248, 0.2)";
-        ctx.lineWidth = idx === 1 ? 2.5 : 1.5;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-
-      // Radar Crosshairs
-      ctx.strokeStyle = "rgba(0, 204, 136, 0.18)";
-      ctx.lineWidth = 1.5;
+    function roundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
-      ctx.moveTo(cx - 360, cy); ctx.lineTo(cx + 360, cy);
-      ctx.moveTo(cx, cy - 220); ctx.lineTo(cx, cy + 280);
-      ctx.stroke();
-
-      // Glowing Radar Blips (Representing spotted price glitches)
-      const blips = [
-        { x: 690, y: 175, r: 6 }, { x: 920, y: 195, r: 7 },
-        { x: 845, y: 120, r: 5 }, { x: 640, y: 280, r: 5 },
-        { x: 975, y: 270, r: 6 }
-      ];
-      blips.forEach(b => {
-        ctx.save();
-        ctx.shadowColor = "#00cc88";
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = "#6ee7b7";
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-
-      // Back Layer City Skyline Silhouette
-      const backBuildings = [
-        { x: 0, w: 120, h: 350 }, { x: 110, w: 140, h: 420 }, { x: 240, w: 110, h: 310 },
-        { x: 340, w: 150, h: 450 }, { x: 480, w: 120, h: 340 }, { x: 590, w: 130, h: 270 },
-        { x: 710, w: 180, h: 230 }, { x: 880, w: 130, h: 280 }, { x: 1000, w: 145, h: 390 },
-        { x: 1135, w: 160, h: 460 }, { x: 1285, w: 130, h: 340 }, { x: 1405, w: 200, h: 410 }
-      ];
-
-      backBuildings.forEach((b, i) => {
-        const by = 640 - b.h;
-        ctx.fillStyle = i % 2 === 0 ? "#070d19" : "#0a1324";
-        ctx.fillRect(b.x, by, b.w, b.h);
-        ctx.strokeStyle = "rgba(0, 204, 136, 0.2)";
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(b.x, by, b.w, b.h);
-
-        // Glowing Cyberpunk Windows
-        for (let wy = by + 22; wy < 570; wy += 24) {
-          for (let wx = b.x + 14; wx < b.x + b.w - 18; wx += 20) {
-            if (((wx * 17 + wy * 11 + i) % 13) > 6) {
-              ctx.fillStyle = ((wx + wy) % 4 === 0)
-                ? "rgba(0, 204, 136, 0.65)"
-                : ((wx + wy) % 3 === 0 ? "rgba(56, 189, 248, 0.45)" : "rgba(245, 158, 11, 0.4)");
-              ctx.fillRect(wx, wy, 9, 13);
-            }
-          }
-        }
-      });
-
-      // Neon Horizon Laser Line & Balcony Railing
-      const railY = 540;
-      ctx.fillStyle = "rgba(3, 6, 12, 0.92)";
-      ctx.fillRect(0, railY + 45, 1600, 60);
-
-      ctx.save();
-      ctx.shadowColor = "#00cc88";
-      ctx.shadowBlur = 15;
-      ctx.strokeStyle = "#00cc88";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, railY); ctx.lineTo(1600, railY);
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.strokeStyle = "#1e293b";
-      ctx.lineWidth = 5;
-      for (let rx = 40; rx < 1600; rx += 95) {
-        ctx.beginPath();
-        ctx.moveTo(rx, railY);
-        ctx.lineTo(rx, 640);
-        ctx.stroke();
-      }
+      ctx.roundRect(x, y, w, h, r);
+      ctx.closePath();
     }
 
-    function drawCleanAvatar() {
+    // ORIGINAL SQUARE-ISH AVATAR
+    function drawAvatar() {
       const c = document.getElementById("avatarCanvas");
       const ctx = c.getContext("2d");
 
@@ -206,6 +115,166 @@
       ctx.restore();
     }
 
+    // NEW CIRCULAR AVATAR
+    function drawCircleAvatar() {
+      const c = document.getElementById("circleAvatarCanvas");
+      const ctx = c.getContext("2d");
+
+      const bg = ctx.createRadialGradient(256, 256, 30, 256, 256, 340);
+      bg.addColorStop(0, "#0f2e26");
+      bg.addColorStop(0.6, "#090d16");
+      bg.addColorStop(1, "#04060b");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 512, 512);
+
+      ctx.strokeStyle = "rgba(0, 204, 136, 0.25)";
+      ctx.lineWidth = 3;
+      [115, 185].forEach(radius => {
+        ctx.beginPath();
+        ctx.arc(256, 256, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      // Perfect Circle Outermost Boundary — fits Discord exactly
+      ctx.strokeStyle = "#00cc88";
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.arc(256, 256, 236, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.shadowColor = "#00cc88";
+      ctx.shadowBlur = 45;
+      const boltGrad = ctx.createLinearGradient(170, 75, 340, 420);
+      boltGrad.addColorStop(0, "#a7f3d0");
+      boltGrad.addColorStop(0.5, "#00cc88");
+      boltGrad.addColorStop(1, "#059669");
+      ctx.fillStyle = boltGrad;
+      ctx.beginPath();
+      ctx.moveTo(295, 70);
+      ctx.lineTo(145, 270);
+      ctx.lineTo(255, 270);
+      ctx.lineTo(210, 440);
+      ctx.lineTo(370, 225);
+      ctx.lineTo(265, 225);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // TEXT-FREE CYBERPUNK RADAR BACKGROUND (1600x640)
+    function drawNoTextBackground() {
+      const c = document.getElementById("bgCanvas");
+      const ctx = c.getContext("2d");
+
+      const sky = ctx.createLinearGradient(0, 0, 0, 640);
+      sky.addColorStop(0, "#040710");
+      sky.addColorStop(0.5, "#0a1428");
+      sky.addColorStop(0.85, "#072621");
+      sky.addColorStop(1, "#040811");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, 1600, 640);
+
+      ctx.strokeStyle = "rgba(0, 204, 136, 0.07)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= 1600; x += 64) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 640); ctx.stroke();
+      }
+      for (let y = 0; y <= 640; y += 64) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1600, y); ctx.stroke();
+      }
+
+      const cx = 800, cy = 250;
+      const pulse = ctx.createRadialGradient(cx, cy, 10, cx, cy, 380);
+      pulse.addColorStop(0, "rgba(0, 204, 136, 0.50)");
+      pulse.addColorStop(0.35, "rgba(16, 185, 129, 0.22)");
+      pulse.addColorStop(0.7, "rgba(6, 182, 212, 0.08)");
+      pulse.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = pulse;
+      ctx.fillRect(0, 0, 1600, 640);
+
+      [75, 135, 195, 260, 330].forEach((r, idx) => {
+        ctx.strokeStyle = idx % 2 === 0 ? "rgba(0, 204, 136, 0.35)" : "rgba(56, 189, 248, 0.2)";
+        ctx.lineWidth = idx === 1 ? 2.5 : 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      ctx.strokeStyle = "rgba(0, 204, 136, 0.18)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 360, cy); ctx.lineTo(cx + 360, cy);
+      ctx.moveTo(cx, cy - 220); ctx.lineTo(cx, cy + 280);
+      ctx.stroke();
+
+      const blips = [
+        { x: 690, y: 175, r: 6 }, { x: 920, y: 195, r: 7 },
+        { x: 845, y: 120, r: 5 }, { x: 640, y: 280, r: 5 },
+        { x: 975, y: 270, r: 6 }
+      ];
+      blips.forEach(b => {
+        ctx.save();
+        ctx.shadowColor = "#00cc88";
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = "#6ee7b7";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      const backBuildings = [
+        { x: 0, w: 120, h: 350 }, { x: 110, w: 140, h: 420 }, { x: 240, w: 110, h: 310 },
+        { x: 340, w: 150, h: 450 }, { x: 480, w: 120, h: 340 }, { x: 590, w: 130, h: 270 },
+        { x: 710, w: 180, h: 230 }, { x: 880, w: 130, h: 280 }, { x: 1000, w: 145, h: 390 },
+        { x: 1135, w: 160, h: 460 }, { x: 1285, w: 130, h: 340 }, { x: 1405, w: 200, h: 410 }
+      ];
+
+      backBuildings.forEach((b, i) => {
+        const by = 640 - b.h;
+        ctx.fillStyle = i % 2 === 0 ? "#070d19" : "#0a1324";
+        ctx.fillRect(b.x, by, b.w, b.h);
+        ctx.strokeStyle = "rgba(0, 204, 136, 0.2)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(b.x, by, b.w, b.h);
+
+        for (let wy = by + 22; wy < 570; wy += 24) {
+          for (let wx = b.x + 14; wx < b.x + b.w - 18; wx += 20) {
+            if (((wx * 17 + wy * 11 + i) % 13) > 6) {
+              ctx.fillStyle = ((wx + wy) % 4 === 0)
+                ? "rgba(0, 204, 136, 0.65)"
+                : ((wx + wy) % 3 === 0 ? "rgba(56, 189, 248, 0.45)" : "rgba(245, 158, 11, 0.4)");
+              ctx.fillRect(wx, wy, 9, 13);
+            }
+          }
+        }
+      });
+
+      const railY = 540;
+      ctx.fillStyle = "rgba(3, 6, 12, 0.92)";
+      ctx.fillRect(0, railY + 45, 1600, 60);
+
+      ctx.save();
+      ctx.shadowColor = "#00cc88";
+      ctx.shadowBlur = 15;
+      ctx.strokeStyle = "#00cc88";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, railY); ctx.lineTo(1600, railY);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 5;
+      for (let rx = 40; rx < 1600; rx += 95) {
+        ctx.beginPath();
+        ctx.moveTo(rx, railY);
+        ctx.lineTo(rx, 640);
+        ctx.stroke();
+      }
+    }
+
     function downloadCanvas(id, filename) {
       const canvas = document.getElementById(id);
       const link = document.createElement("a");
@@ -214,8 +283,9 @@
       link.click();
     }
 
+    drawAvatar();
+    drawCircleAvatar();
     drawNoTextBackground();
-    drawCleanAvatar();
   </script>
 </body>
 </html>
