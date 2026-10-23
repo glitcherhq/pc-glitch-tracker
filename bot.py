@@ -26,7 +26,7 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        recent_html = "".join(f"<li>{s}</li>" for s in LIVE_STATS["recent_servers"]) or "<li>Waiting for new installs...</li>"
+        recent_html = "".join(f"<li>{s}</li>" for s in LIVE_STATS["recent_servers"]) or "<li>Waiting for Discord login...</li>"
         html = f"""
         <html><body style="background:#0b0f19;color:#e2e8f0;font-family:sans-serif;padding:30px;line-height:1.6;">
           <h2 style="color:#10b981;">⚡ Steam Freebies & Glitch Radar — Live Bot Telemetry</h2>
@@ -34,7 +34,7 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
           <p><strong>Active Discord Servers:</strong> {LIVE_STATS['servers']}</p>
           <p><strong>Total Gamers Reached:</strong> {LIVE_STATS['users']:,}</p>
           <p><strong>Last Deal Broadcast:</strong> {LIVE_STATS['last_broadcast']}</p>
-          <p><strong>Last API / Discord Error:</strong> <span style="color:#f87171;">{LIVE_STATS['last_error']}</span></p>
+          <p><strong>Last API / Discord Notice:</strong> <span style="color:#fbbf24;">{LIVE_STATS['last_error']}</span></p>
           <h4>Active Servers Installed:</h4>
           <ul>{recent_html}</ul>
         </body></html>
@@ -135,15 +135,22 @@ class GlitchRadarBot(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
+        self.synced_once = False
 
     async def setup_hook(self):
-        await self.tree.sync()
+        if not self.synced_once:
+            try:
+                await self.tree.sync()
+                self.synced_once = True
+            except Exception as e:
+                print(f"⚠️ Command sync skipped: {e}", flush=True)
 
 bot = GlitchRadarBot()
 
 @bot.event
 async def on_ready():
     LIVE_STATS["status"] = "ONLINE & CONNECTED ✅"
+    LIVE_STATS["last_error"] = "None"
     update_telemetry()
     print(f"🚀 24/7 CLOUD BOT ONLINE as {bot.user} across {len(bot.guilds)} server(s)!", flush=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
@@ -290,7 +297,6 @@ async def send_sample_drops(send_func):
 @bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
     try:
-        # Defer immediately within 0.1s so Discord never says 'The application did not respond'
         await interaction.response.defer(thinking=True)
         cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (interaction.guild_id, interaction.channel_id))
         conn.commit()
@@ -300,7 +306,6 @@ async def setchannel(interaction: discord.Interaction):
         await send_sample_drops(interaction.followup.send)
     except Exception as e:
         LIVE_STATS["last_error"] = f"/setchannel error: {e}"
-        print(f"❌ /setchannel error: {e}", flush=True)
 
 @bot.tree.command(name="stats", description="Check how many Discord servers and gamers are using this bot.")
 async def stats(interaction: discord.Interaction):
@@ -382,8 +387,35 @@ async def check_price_glitches():
     except Exception as e:
         LIVE_STATS["last_error"] = f"Deal loop: {e}"
 
-if __name__ == "__main__":
+async def run_bot_forever():
     if not BOT_TOKEN:
+        LIVE_STATS["status"] = "ERROR: DISCORD_BOT_TOKEN missing"
         while True:
-            time.sleep(60)
-    bot.run(BOT_TOKEN)
+            await asyncio.sleep(60)
+
+    while True:
+        try:
+            LIVE_STATS["status"] = "Connecting to Discord Gateway..."
+            await bot.start(BOT_TOKEN)
+        except discord.errors.HTTPException as e:
+            wait_mins = 15
+            LIVE_STATS["status"] = f"Cloudflare Rate Limit Cooldown (Retrying in {wait_mins}m)"
+            LIVE_STATS["last_error"] = f"Discord shared-IP rate limit (HTTP {e.status}). Waiting {wait_mins}m for Cloudflare ban to clear."
+            print(f"⚠️ Cloudflare 1015 rate limit on shared Render IP. Sleeping {wait_mins} minutes so ban expires...", flush=True)
+            try:
+                await bot.http.close()
+                bot.clear()
+            except Exception:
+                pass
+            await asyncio.sleep(wait_mins * 60)
+        except Exception as e:
+            LIVE_STATS["status"] = f"Reconnecting after error: {e}"
+            try:
+                await bot.http.close()
+                bot.clear()
+            except Exception:
+                pass
+            await asyncio.sleep(60)
+
+if __name__ == "__main__":
+    asyncio.run(run_bot_forever())
