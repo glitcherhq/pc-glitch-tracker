@@ -1,3 +1,5 @@
+import asyncio
+import datetime
 import http.server
 import os
 import sqlite3
@@ -9,7 +11,15 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-LIVE_STATS = {"servers": 0, "users": 0, "recent_servers": []}
+LIVE_STATS = {
+    "servers": 0,
+    "users": 0,
+    "recent_servers": [],
+    "status": "Starting up...",
+    "ping_ms": 0,
+    "last_broadcast": "None yet since last reboot",
+    "last_error": "None"
+}
 
 class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -18,11 +28,14 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         recent_html = "".join(f"<li>{s}</li>" for s in LIVE_STATS["recent_servers"]) or "<li>Waiting for new installs...</li>"
         html = f"""
-        <html><body style="background:#0b0f19;color:#e2e8f0;font-family:sans-serif;padding:30px;">
+        <html><body style="background:#0b0f19;color:#e2e8f0;font-family:sans-serif;padding:30px;line-height:1.6;">
           <h2 style="color:#10b981;">⚡ Steam Freebies & Glitch Radar — Live Bot Telemetry</h2>
+          <p><strong>Discord Gateway Status:</strong> <span style="color:#34d399;">{LIVE_STATS['status']}</span> (Ping: {LIVE_STATS['ping_ms']} ms)</p>
           <p><strong>Active Discord Servers:</strong> {LIVE_STATS['servers']}</p>
           <p><strong>Total Gamers Reached:</strong> {LIVE_STATS['users']:,}</p>
-          <h4>Newest Servers Installed:</h4>
+          <p><strong>Last Deal Broadcast:</strong> {LIVE_STATS['last_broadcast']}</p>
+          <p><strong>Last API / Discord Error:</strong> <span style="color:#f87171;">{LIVE_STATS['last_error']}</span></p>
+          <h4>Active Servers Installed:</h4>
           <ul>{recent_html}</ul>
         </body></html>
         """
@@ -48,6 +61,7 @@ CJ_WRAPPER = os.getenv("CJ_WRAPPER", "").strip()
 HUMBLE_WRAPPER = os.getenv("HUMBLE_WRAPPER", "").strip()
 RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "").strip()
 WEB_RADAR_URL = "https://glitcherhq.github.io/pc-glitch-tracker/"
+BOT_INVITE_URL = "https://discord.com/oauth2/authorize?client_id=1560549066243580034&permissions=19456&scope=bot%20applications.commands"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -70,7 +84,9 @@ conn.commit()
 def update_telemetry():
     LIVE_STATS["servers"] = len(bot.guilds)
     LIVE_STATS["users"] = sum(g.member_count or 0 for g in bot.guilds)
-    LIVE_STATS["recent_servers"] = [f"{g.name} ({g.member_count or '?'} members)" for g in list(bot.guilds)[-10:]]
+    LIVE_STATS["recent_servers"] = [f"{g.name} ({g.member_count or '?'} members)" for g in list(bot.guilds)[-15:]]
+    if bot.latency and bot.latency == bot.latency:
+        LIVE_STATS["ping_ms"] = round(bot.latency * 1000)
 
 def wrap_affiliate_link(raw_url: str, store_id: str) -> str:
     if store_id == "21" and HUMBLE_WRAPPER:
@@ -82,6 +98,8 @@ def wrap_affiliate_link(raw_url: str, store_id: str) -> str:
 def pick_best_channel(guild: discord.Guild):
     keywords = ("free", "deal", "glitch", "giveaway", "game", "alert", "general", "chat")
     me = guild.me
+    if not me:
+        return None
     for kw in keywords:
         for ch in guild.text_channels:
             if kw in ch.name.lower() and ch.permissions_for(me).send_messages and ch.permissions_for(me).embed_links:
@@ -111,6 +129,7 @@ class DealButtons(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(discord.ui.Button(label=primary_label, url=primary_url, style=discord.ButtonStyle.link, emoji="🔥"))
         self.add_item(discord.ui.Button(label="Browse 200+ Live Deals", url=WEB_RADAR_URL, style=discord.ButtonStyle.link, emoji="⚡"))
+        self.add_item(discord.ui.Button(label="Add Bot to Your Server", url=BOT_INVITE_URL, style=discord.ButtonStyle.link, emoji="➕"))
 
 class GlitchRadarBot(discord.Client):
     def __init__(self):
@@ -124,6 +143,7 @@ bot = GlitchRadarBot()
 
 @bot.event
 async def on_ready():
+    LIVE_STATS["status"] = "ONLINE & CONNECTED ✅"
     update_telemetry()
     print(f"🚀 24/7 CLOUD BOT ONLINE as {bot.user} across {len(bot.guilds)} server(s)!", flush=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
@@ -138,20 +158,26 @@ async def on_ready():
 async def on_guild_join(guild: discord.Guild):
     update_telemetry()
     print(f"🎉 NEW SERVER INSTALLED BOT: {guild.name} ({guild.member_count} members)", flush=True)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Deals in {len(bot.guilds)} Servers"))
     ch = pick_best_channel(guild)
     if ch:
         cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild.id, ch.id))
         conn.commit()
         await send_sample_drops(ch.send)
 
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    update_telemetry()
+
 @tasks.loop(minutes=10)
 async def keep_alive_ping():
     update_telemetry()
     if RENDER_URL:
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(RENDER_URL) as resp:
-                    print(f"💓 Self-ping status: {resp.status} | Active Servers: {LIVE_STATS['servers']}", flush=True)
+                    print(f"💓 Self-ping status: {resp.status} | Servers: {LIVE_STATS['servers']}", flush=True)
         except Exception:
             pass
 
@@ -195,25 +221,20 @@ def format_freebie_embed(item: dict):
     return embed, view
 
 async def fetch_live_deals(session: aiohttp.ClientSession):
-    """Tries CheapShark first; if Cloudflare blocks Render's IP, automatically uses Valve's Official Steam Specials API."""
     try:
         url = "https://www.cheapshark.com/api/1.0/deals?storeID=2,15,21&onSale=1&lowerPrice=1&pageSize=40&sortBy=Recent"
-        async with session.get(url, timeout=10) as resp:
+        async with session.get(url, timeout=8) as resp:
             if resp.status == 200:
                 data = await resp.json()
                 if data:
-                    print(f"✅ Loaded {len(data)} deals from CheapShark.", flush=True)
                     return data
-            else:
-                print(f"⚠️ CheapShark returned status {resp.status}, switching to official Steam API backup...", flush=True)
-    except Exception as e:
-        print(f"⚠️ CheapShark unreachable ({e}), switching to official Steam API backup...", flush=True)
+    except Exception:
+        pass
 
-    # Backup Engine: Official Valve Steam Storefront API (Never blocks Render IPs)
     steam_deals = []
     try:
         steam_url = "https://store.steampowered.com/api/featuredcategories?cc=us&l=en"
-        async with session.get(steam_url, timeout=10) as resp:
+        async with session.get(steam_url, timeout=8) as resp:
             if resp.status == 200:
                 sdata = await resp.json()
                 buckets = [
@@ -241,55 +262,72 @@ async def fetch_live_deals(session: aiohttp.ClientSession):
                                 "thumb": item.get("large_capsule_image") or item.get("header_image"),
                                 "custom_url": fanatical_search
                             })
-                print(f"✅ Loaded {len(steam_deals)} discounted games from Official Steam API.", flush=True)
     except Exception as e:
-        print(f"❌ Steam API error: {e}", flush=True)
+        LIVE_STATS["last_error"] = f"Steam API: {e}"
     return steam_deals
 
 async def send_sample_drops(send_func):
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
+    timeout = aiohttp.ClientTimeout(total=12)
+    async with aiohttp.ClientSession(headers=HEADERS, timeout=timeout) as session:
         try:
-            async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc&type=game") as r1:
+            async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc") as r1:
                 if r1.status == 200:
                     freebies = await r1.json()
                     if freebies:
                         e1, v1 = format_freebie_embed(freebies[0])
                         await send_func(embed=e1, view=v1)
         except Exception as e:
-            print(f"Sample freebie error: {e}", flush=True)
+            LIVE_STATS["last_error"] = f"Sample Freebie: {e}"
 
-        deals = await fetch_live_deals(session)
-        if deals:
-            e2, v2 = format_glitch_embed(deals[0])
-            await send_func(embed=e2, view=v2)
+        try:
+            deals = await fetch_live_deals(session)
+            if deals:
+                e2, v2 = format_glitch_embed(deals[0])
+                await send_func(embed=e2, view=v2)
+        except Exception as e:
+            LIVE_STATS["last_error"] = f"Sample Deal: {e}"
 
 @bot.tree.command(name="setchannel", description="Activate live 100% Free PC Games and Price Glitch alerts.")
 async def setchannel(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **Live Price Drop** right now..."
-    )
-    cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (interaction.guild_id, interaction.channel_id))
-    conn.commit()
-    await send_sample_drops(interaction.followup.send)
+    try:
+        # Defer immediately within 0.1s so Discord never says 'The application did not respond'
+        await interaction.response.defer(thinking=True)
+        cursor.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (interaction.guild_id, interaction.channel_id))
+        conn.commit()
+        await interaction.followup.send(
+            "🚀 **Steam Freebies & Glitch Radar Connected!** Fetching 1 live **100% Free Game** and 1 **Live Price Drop** right now..."
+        )
+        await send_sample_drops(interaction.followup.send)
+    except Exception as e:
+        LIVE_STATS["last_error"] = f"/setchannel error: {e}"
+        print(f"❌ /setchannel error: {e}", flush=True)
 
 @bot.tree.command(name="stats", description="Check how many Discord servers and gamers are using this bot.")
 async def stats(interaction: discord.Interaction):
-    update_telemetry()
-    await interaction.response.send_message(
-        f"📊 **Live Bot Telemetry**\n"
-        f"• **Active Servers:** `{LIVE_STATS['servers']}`\n"
-        f"• **Total Gamers Reached:** `{LIVE_STATS['users']:,}`\n"
-        f"• **Newest Installs:** {', '.join(LIVE_STATS['recent_servers'][-5:])}",
-        ephemeral=True
-    )
+    try:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        update_telemetry()
+        await interaction.followup.send(
+            f"📊 **Live Bot Telemetry**\n"
+            f"• **Status:** `{LIVE_STATS['status']}` (`{LIVE_STATS['ping_ms']}ms`)\n"
+            f"• **Active Servers:** `{LIVE_STATS['servers']}`\n"
+            f"• **Total Gamers Reached:** `{LIVE_STATS['users']:,}`\n"
+            f"• **Last Broadcast:** `{LIVE_STATS['last_broadcast']}`\n"
+            f"• **Servers:** {', '.join(LIVE_STATS['recent_servers'][-5:])}",
+            ephemeral=True
+        )
+    except Exception as e:
+        LIVE_STATS["last_error"] = f"/stats error: {e}"
 
 @tasks.loop(minutes=45)
 async def check_free_games():
+    await asyncio.sleep(8)
     channels = get_target_channels()
     if not channels:
         return
     try:
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
+        timeout = aiohttp.ClientTimeout(total=12)
+        async with aiohttp.ClientSession(headers=HEADERS, timeout=timeout) as session:
             async with session.get("https://www.gamerpower.com/api/giveaways?platform=pc") as resp:
                 if resp.status != 200:
                     return
@@ -305,24 +343,27 @@ async def check_free_games():
                 for ch in channels:
                     try:
                         await ch.send(embed=embed, view=view)
-                    except Exception:
-                        pass
-                print(f"🎁 Broadcasted Freebie: {item['title']}", flush=True)
+                    except Exception as send_err:
+                        LIVE_STATS["last_error"] = f"Send Freebie ({ch.guild.name}): {send_err}"
+                now_str = datetime.datetime.utcnow().strftime("%H:%M UTC")
+                LIVE_STATS["last_broadcast"] = f"🎁 Freebie: {item['title']} ({now_str})"
                 break
     except Exception as e:
-        print(f"Freebie loop error: {e}", flush=True)
+        LIVE_STATS["last_error"] = f"Freebie loop: {e}"
 
 @tasks.loop(hours=2)
 async def check_price_glitches():
+    await asyncio.sleep(12)
     channels = get_target_channels()
     if not channels:
         return
     try:
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
+        timeout = aiohttp.ClientTimeout(total=12)
+        async with aiohttp.ClientSession(headers=HEADERS, timeout=timeout) as session:
             deals = await fetch_live_deals(session)
 
         for deal in deals:
-            if round(float(deal.get("savings", 0))) < 45:
+            if round(float(deal.get("savings", 0))) < 40:
                 continue
             item_id = f"deal_{deal['dealID']}"
             cursor.execute("SELECT 1 FROM posted_items WHERE item_id = ?", (item_id,))
@@ -333,12 +374,13 @@ async def check_price_glitches():
                 for ch in channels:
                     try:
                         await ch.send(embed=embed, view=view)
-                    except Exception:
-                        pass
-                print(f"⚡ Broadcasted Price Drop: {deal['title']} (-{deal['savings']}%)", flush=True)
+                    except Exception as send_err:
+                        LIVE_STATS["last_error"] = f"Send Deal ({ch.guild.name}): {send_err}"
+                now_str = datetime.datetime.utcnow().strftime("%H:%M UTC")
+                LIVE_STATS["last_broadcast"] = f"⚡ Deal: {deal['title']} -{deal['savings']}% ({now_str})"
                 break
     except Exception as e:
-        print(f"Deal loop error: {e}", flush=True)
+        LIVE_STATS["last_error"] = f"Deal loop: {e}"
 
 if __name__ == "__main__":
     if not BOT_TOKEN:
